@@ -1,476 +1,84 @@
 <!DOCTYPE html>
 <html lang="cs" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Školní testy – Procvičování</title>
-    
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, getDocs, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyCsEtg1GEGDbZDawmLk-sfQfdauHFJaiko",
-            authDomain: "diar-4f2e8.firebaseapp.com",
-            projectId: "diar-4f2e8",
-            storageBucket: "diar-4f2e8.firebasestorage.app",
-            messagingSenderId: "19490498944",
-            appId: "1:19490498944:web:733ab182f3a1e09483f965"
-        };
-
-        try {
-            const app = initializeApp(firebaseConfig);
-            window.db = getFirestore(app);
-            window.fbReady = true;
-        } catch(e) {
-            console.log("Offline režim");
-            window.fbReady = false;
-        }
-    </script>
-
-    <style>
-        :root {
-            --bg: #f0f2f5;
-            --paper: #ffffff;
-            --text: #1a1a2e;
-            --muted: #6c757d;
-            --border: #dee2e6;
-            --primary: #4361ee;
-            --primary-light: #4895ef;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --radius: 12px;
-            --shadow: 0 2px 12px rgba(0,0,0,0.08);
-        }
-        [data-theme="dark"] {
-            --bg: #0f0f1a;
-            --paper: #1a1a2e;
-            --text: #e0e0e0;
-            --muted: #a0a0a0;
-            --border: #2d2d44;
-            --primary: #4895ef;
-            --shadow: 0 2px 12px rgba(0,0,0,0.3);
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.5;
-            font-size: 16px;
-            transition: background 0.3s, color 0.3s;
-        }
-        .wrap { max-width: 800px; margin: 0 auto; padding: 20px 16px; }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 28px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-        }
-        .header h1 { font-size: 1.4rem; font-weight: 800; }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 16px 24px;
-            border: none;
-            border-radius: var(--radius);
-            font-size: 1.05rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all .15s;
-            width: 100%;
-        }
-        .btn:hover { transform: translateY(-1px); opacity: 0.9; }
-        .btn-blue { background: var(--primary); color: #fff; }
-        .btn-gray { background: var(--bg); color: var(--text); border: 2px solid var(--border); }
-        .btn-row { display: flex; gap: 10px; margin-top: 16px; }
-        .btn-row .btn { width: auto; flex: 1; }
-        .box {
-            background: var(--paper);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            padding: 24px;
-            margin-bottom: 16px;
-            transition: all 0.3s;
-        }
-        .cat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .cat-card {
-            padding: 24px 12px;
-            background: var(--paper);
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
-            text-align: center;
-            cursor: pointer;
-            transition: all .15s;
-        }
-        .cat-card:hover { border-color: var(--primary); }
-        .cat-card .emoji { font-size: 2.5rem; margin-bottom: 8px; }
-        .cat-card .name { font-weight: 700; }
-        .cat-card .count { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
-        .test-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background: var(--paper);
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all .15s;
-        }
-        .test-item:hover { border-color: var(--primary); }
-        .test-item .title { font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
-        .test-item .meta { font-size: 0.85rem; color: var(--muted); }
-        .tag {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            background: var(--bg);
-            color: var(--muted);
-            margin-right: 4px;
-        }
-        .tag.blue { background: #e3f2fd; color: #1565c0; }
-        .progress {
-            height: 8px;
-            background: var(--border);
-            border-radius: 4px;
-            margin-bottom: 24px;
-            overflow: hidden;
-        }
-        .progress > div {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--primary-light));
-            transition: width .3s;
-        }
-        .question-num {
-            font-size: 0.8rem;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-        .question-text {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 24px;
-            line-height: 1.4;
-        }
-        .option {
-            display: block;
-            width: 100%;
-            padding: 18px;
-            margin-bottom: 10px;
-            background: var(--paper);
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
-            font-size: 1.1rem;
-            cursor: pointer;
-            text-align: left;
-            transition: all .15s;
-        }
-        .option:hover { border-color: var(--primary-light); }
-        .option.picked {
-            border-color: var(--primary);
-            background: rgba(67, 97, 238, 0.08);
-            font-weight: 600;
-        }
-        .result-circle {
-            width: 160px;
-            height: 160px;
-            border-radius: 50%;
-            border: 8px solid var(--success);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 24px;
-        }
-        .result-percent { font-size: 3rem; font-weight: 800; }
-        .theme-btn {
-            background: var(--paper);
-            border: 2px solid var(--border);
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 1.3rem;
-        }
-        .hide { display: none !important; }
-        .center { text-align: center; }
-        .small { font-size: 0.9rem; color: var(--muted); }
-        .mt2 { margin-top: 16px; }
-        @media (max-width: 480px) {
-            .btn-row { flex-direction: column; }
-            .cat-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Školní testy</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#f0f2f5;--paper:#fff;--text:#1a1a2e;--muted:#6c757d;--b:#dee2e6;--pr:#4361ee;--ok:#2ecc71;--r:12px}
+[data-theme="dark"]{--bg:#0f0f1a;--paper:#1a1a2e;--text:#e0e0e0;--muted:#a0a0a0;--b:#2d2d44}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+.wrap{max-width:800px;margin:0 auto;padding:20px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid var(--b)}
+h1{font-size:1.4rem}
+.btn{padding:14px 20px;border:none;border-radius:var(--r);font-size:1rem;font-weight:700;cursor:pointer;width:100%;margin-top:10px}
+.btn:hover{opacity:.9}.btn-pr{background:var(--pr);color:#fff}.btn-gr{background:var(--bg);border:2px solid var(--b);color:var(--text)}
+.box{background:var(--paper);border-radius:var(--r);box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid var(--b);padding:24px;margin-bottom:14px}
+.c{text-align:center}.s{font-size:.9rem;color:var(--muted)}.mt{margin-top:12px}.hide{display:none!important}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:20px}
+.cat-card{padding:22px 10px;background:var(--paper);border:2px solid var(--b);border-radius:var(--r);text-align:center;cursor:pointer}
+.cat-card:hover{border-color:var(--pr)}.cat-card .e{font-size:2.2rem;margin-bottom:6px}.cat-card .n{font-weight:700}.cat-card .c2{font-size:.8rem;color:var(--muted)}
+.test-item{display:flex;justify-content:space-between;align-items:center;padding:18px;background:var(--paper);border:2px solid var(--b);border-radius:var(--r);margin-bottom:10px;cursor:pointer}
+.test-item:hover{border-color:var(--pr)}.test-item .t{font-weight:700;font-size:1.1rem;margin-bottom:4px}
+.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:700;background:var(--bg);color:var(--muted);margin-right:4px}
+.tag.bl{background:#e3f2fd;color:#1565c0}
+.progress{height:8px;background:var(--b);border-radius:4px;margin-bottom:20px;overflow:hidden}
+.progress>div{height:100%;background:linear-gradient(90deg,var(--pr),#4895ef);transition:width .3s}
+.q-text{font-size:1.25rem;font-weight:700;margin-bottom:20px}
+.option{display:block;width:100%;padding:16px;margin-bottom:10px;background:var(--paper);border:2px solid var(--b);border-radius:var(--r);font-size:1.05rem;cursor:pointer;text-align:left}
+.option:hover{border-color:#4895ef}.option.picked{border-color:var(--pr);background:rgba(67,97,238,.08);font-weight:700}
+.res-circle{width:150px;height:150px;border-radius:50%;border:8px solid var(--ok);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 20px}
+.res-pct{font-size:2.8rem;font-weight:800}
+.th{background:var(--paper);border:2px solid var(--b);border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem}
+@media(max-width:480px){.cat-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
 </head>
 <body>
-
 <div class="wrap">
-    <div class="header">
-        <h1>🎓 Školní testy</h1>
-        <button class="theme-btn" onclick="toggleTheme()">🌓</button>
-    </div>
+<div class="header"><h1>🎓 Školní testy</h1><button class="th" onclick="toggleTheme()">🌓</button></div>
 
-    <!-- ÚVOD -->
-    <div id="page-home">
-        <div class="box center">
-            <div style="font-size:3rem;margin-bottom:12px;">👨‍🎓</div>
-            <h2 class="mb2">Procvičování pro žáky</h2>
-            <p class="small mb2">Vyber si předmět a otestuj své znalosti. Bez přihlašování, rovnou do toho!</p>
-            <button class="btn btn-blue" onclick="go('cats')">Spustit procvičování</button>
-        </div>
-    </div>
+<div id="p-home"><div class="box c"><div style="font-size:3rem;margin-bottom:12px">👨‍🎓</div><h2 class="mt">Procvičování</h2><p class="s mt">Vyber předmět a zkus test. Bez přihlašování.</p><button class="btn btn-pr mt" onclick="go('cats')">Začít</button></div></div>
 
-    <!-- KATEGORIE -->
-    <div id="page-cats" class="hide">
-        <div class="center mb2">
-            <h2>Vyber předmět</h2>
-            <p class="small">Klikni na předmět a zobrazí se dostupné testy</p>
-        </div>
-        <div class="cat-grid" id="cat-grid"></div>
-        <button class="btn btn-gray" onclick="go('home')">Zpět</button>
-    </div>
+<div id="p-cats" class="hide"><div class="c mb"><h2>Vyber předmět</h2></div><div class="cat-grid" id="g-cats"></div><button class="btn btn-gr" onclick="go('home')">Zpět</button></div>
 
-    <!-- SEZNAM TESTŮ -->
-    <div id="page-list" class="hide">
-        <div class="center mb2">
-            <h2 id="list-title">Testy</h2>
-            <p class="small" id="list-sub"></p>
-        </div>
-        <div id="test-list"></div>
-        <button class="btn btn-gray mt2" onclick="go('cats')">← Zpět na předměty</button>
-    </div>
+<div id="p-list" class="hide"><div class="c mb"><h2 id="l-title">Testy</h2><p class="s" id="l-sub"></p></div><div id="g-list"></div><button class="btn btn-gr mt" onclick="go('cats')">← Předměty</button></div>
 
-    <!-- TEST -->
-    <div id="page-test" class="hide">
-        <div class="progress"><div id="progress" style="width:0%"></div></div>
-        <div class="box">
-            <div class="question-num">Otázka <span id="q-num">1</span> / <span id="q-total">5</span></div>
-            <div class="question-text" id="q-text"></div>
-            <div id="options"></div>
-        </div>
-        <div class="btn-row">
-            <button class="btn btn-gray" onclick="prev()" id="btn-prev">← Předchozí</button>
-            <button class="btn btn-blue" onclick="next()" id="btn-next">Další →</button>
-        </div>
-    </div>
+<div id="p-test" class="hide"><div class="progress"><div id="prog" style="width:0%"></div></div><div class="box"><div class="s" style="text-transform:uppercase;font-size:.75rem;margin-bottom:6px">Otázka <span id="q-cur">1</span> / <span id="q-tot">5</span></div><div class="q-text" id="q-txt"></div><div id="q-opt"></div></div><div style="display:flex;gap:10px"><button class="btn btn-gr" onclick="prev()" id="b-prev" style="flex:1">←</button><button class="btn btn-pr" onclick="next()" id="b-next" style="flex:1">Další →</button></div></div>
 
-    <!-- VÝSLEDEK -->
-    <div id="page-result" class="hide">
-        <div class="box center">
-            <div class="result-circle">
-                <div class="result-percent" id="res-pct">0%</div>
-            </div>
-            <div style="font-size:1.15rem;">
-                <strong id="res-cnt">0 / 0</strong> správně
-            </div>
-            <p class="small mt2" id="res-msg"></p>
-        </div>
-        <div class="box">
-            <h3 class="mb2">Srovnání s ostatními</h3>
-            <p>Průměr všech žáků: <strong id="res-avg">-</strong></p>
-            <p class="small mt2" id="res-cmp"></p>
-        </div>
-        <button class="btn btn-blue mt2" onclick="go('cats')">Vybrat další test</button>
-    </div>
+<div id="p-res" class="hide"><div class="box c"><div class="res-circle"><div class="res-pct" id="r-pct">0%</div></div><div style="font-size:1.1rem"><strong id="r-cnt">0 / 0</strong> správně</div><p class="s mt" id="r-msg"></p></div><div class="box"><h3 class="mb">Srovnání</h3><p>Průměr: <strong id="r-avg">-</strong></p><p class="s mt" id="r-cmp"></p></div><button class="btn btn-pr mt" onclick="go('cats')">Další test</button></div>
 </div>
 
 <script>
-const LS = {
-    key: 'st_zak',
-    load() { try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch(e) { return {}; } },
-    save(d) { localStorage.setItem(this.key, JSON.stringify(d)); },
-    getTests() { return this.load().tests || []; },
-    setTests(t) { const d=this.load(); d.tests=t; this.save(d); },
-    getSubjects() { return this.load().subjects || []; },
-    setSubjects(s) { const d=this.load(); d.subjects=s; this.save(d); },
-    getResults() { return this.load().results || []; },
-    addResult(r) { const d=this.load(); d.results=d.results||[]; d.results.push(r); this.save(d); }
-};
+const cfg={apiKey:"AIzaSyCsEtg1GEGDbZDawmLk-sfQfdauHFJaiko",authDomain:"diar-4f2e8.firebaseapp.com",projectId:"diar-4f2e8",storageBucket:"diar-4f2e8.firebasestorage.app",messagingSenderId:"19490498944",appId:"1:19490498944:web:733ab182f3a1e09483f965"};
+let db; try{firebase.initializeApp(cfg);db=firebase.firestore()}catch(e){alert("Firebase chyba")}
 
-const FB = {
-    async load() {
-        if (!window.fbReady || !window.db) return;
-        try {
-            const [subSnap, testSnap, resSnap] = await Promise.all([
-                getDocs(collection(window.db, 'subjects')),
-                getDocs(query(collection(window.db, 'tests'), orderBy('createdAt', 'desc'))),
-                getDocs(query(collection(window.db, 'results'), orderBy('date', 'desc')))
-            ]);
-            const subs = subSnap.docs.map(d => ({id:d.id, ...d.data()}));
-            const tests = testSnap.docs.map(d => ({id:d.id, ...d.data()}));
-            const res = resSnap.docs.map(d => ({id:d.id, ...d.data()}));
-            if (subs.length) LS.setSubjects(subs);
-            if (tests.length) LS.setTests(tests);
-            const d = LS.load(); d.results = res.length ? res : (d.results||[]); LS.save(d);
-        } catch(e) { console.error(e); }
-    },
-    async saveResult(r) {
-        if (!window.fbReady || !window.db) return;
-        try { await addDoc(collection(window.db, 'results'), r); } catch(e) {}
-    }
-};
+const LS={k:'st_z',ld(){try{return JSON.parse(localStorage.getItem(this.k))||{}}catch(e){return{}}},sv(d){localStorage.setItem(this.k,JSON.stringify(d))},
+gs(){return this.ld().s||[]},ss(s){const d=this.ld();d.s=s;this.sv(d)},gt(){return this.ld().t||[]},st(t){const d=this.ld();d.t=t;this.sv(d)},
+gr(){return this.ld().r||[]},ar(r){const d=this.ld();d.r=d.r||[];d.r.push(r);this.sv(d)}}
 
-function seed() {
-    if (LS.getSubjects().length > 0) return;
-    LS.setSubjects([
-        {id:'mat', name:'Matematika', emoji:'📐'},
-        {id:'cest', name:'Čeština', emoji:'📚'},
-        {id:'ang', name:'Angličtina', emoji:'🌍'},
-        {id:'prir', name:'Přírodopis', emoji:'🔬'},
-        {id:'dej', name:'Dějepis', emoji:'🏛️'}
-    ]);
-    LS.setTests([
-        {
-            id:'t1', title:'Základy geometrie', subject:'mat', subjectName:'Matematika',
-            class:'6. A', shuffle:false,
-            questions:[
-                {q:'Jaký je vzorec pro obsah obdélníku?', o:['a × b','2×(a+b)','a+b','a−b'], a:0},
-                {q:'Kolik stupňů má pravoúhlý úhel?', o:['45°','90°','180°','360°'], a:1},
-                {q:'Trojúhelník má...', o:['2 strany','3 strany','4 strany','5 stran'], a:1},
-                {q:'Čtverec má všechny strany...', o:['různé','stejné','dvě stejné','žádná'], a:1}
-            ], createdAt: Date.now()
-        },
-        {
-            id:'t2', title:'Slovní druhy', subject:'cest', subjectName:'Čeština',
-            class:'5. A', shuffle:true,
-            questions:[
-                {q:'Slovo „krásný" je:', o:['podstatné jméno','přídavné jméno','sloveso','příslovce'], a:1},
-                {q:'Slovo „běží" je:', o:['podstatné jméno','přídavné jméno','sloveso','předložka'], a:2},
-                {q:'„Pod stolem" – slovo „pod" je:', o:['předložka','spojka','částice','zájmeno'], a:0}
-            ], createdAt: Date.now()
-        }
-    ]);
-    const d = LS.load(); d.results = [
-        {testId:'t1', name:'Žák', score:75, correct:3, total:4, date:Date.now()},
-        {testId:'t1', name:'Žák', score:100, correct:4, total:4, date:Date.now()-86400000}
-    ]; LS.save(d);
-}
+async function sync(){if(!db)return;try{const[a,b,c]=await Promise.all([db.collection('subjects').get(),db.collection('tests').get(),db.collection('results').get()]);const s=a.docs.map(x=>({id:x.id,...x.data()}));const t=b.docs.map(x=>({id:x.id,...x.data()}));const r=c.docs.map(x=>({id:x.id,...x.data()}));if(s.length)LS.ss(s);if(t.length)LS.st(t);const d=LS.ld();d.r=r.length?r:(d.r||[]);LS.sv(d)}catch(e){console.log(e)}}
 
-function toggleTheme() {
-    const h = document.documentElement;
-    h.setAttribute('data-theme', h.getAttribute('data-theme')==='light'?'dark':'light');
-    localStorage.setItem('theme', h.getAttribute('data-theme'));
-}
-(function(){ const t=localStorage.getItem('theme')||'light'; document.documentElement.setAttribute('data-theme',t); })();
+function toggleTheme(){const h=document.documentElement,t=h.getAttribute('data-theme')=='light'?'dark':'light';h.setAttribute('data-theme',t);localStorage.setItem('theme',t)}
+(function(){const t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t)})();
 
-function go(p) {
-    document.querySelectorAll('[id^="page-"]').forEach(e => e.classList.add('hide'));
-    document.getElementById('page-'+p).classList.remove('hide');
-    window.scrollTo(0,0);
-    if (p==='cats') renderCats();
-}
+function go(p){document.querySelectorAll('[id^="p-"]').forEach(e=>e.classList.add('hide'));document.getElementById('p-'+p).classList.remove('hide');if(p=='cats')rc();window.scrollTo(0,0)}
+function rc(){const s=LS.gs(),t=LS.gt();document.getElementById('g-cats').innerHTML=s.map(x=>{const c=t.filter(y=>y.subject==x.id).length;return`<div class="cat-card" onclick="pick('${x.id}','${x.name||x.n}')"><div class="e">${x.emoji||x.e||'📖'}</div><div class="n">${x.name||x.n}</div><div class="c2">${c} testů</div></div>`}).join('')}
+function pick(id,name){const t=LS.gt().filter(x=>x.subject==id);document.getElementById('l-title').textContent=name;document.getElementById('l-sub').textContent=t.length+' testů';document.getElementById('g-list').innerHTML=t.length?t.map(x=>`<div class="test-item" onclick="start('${x.id}')"><div><div class="t">${x.title}</div><div class="s mt"><span class="tag bl">${x.class}</span><span class="tag">${x.questions.length} otázek</span></div></div><div style="font-size:1.4rem;color:var(--muted)">›</div></div>`).join(''):'<p class="c s">Zatím nic.</p>';go('list')}
 
-let state = { test:null, questions:[], answers:[], idx:0 };
+let st={test:null,qs:[],ans:[],i:0};
+function start(id){const t=LS.gt().find(x=>x.id==id);if(!t)return;st={test:t,qs:t.shuffle?[...t.questions].sort(()=>Math.random()-.5):[...t.questions],ans:new Array(t.questions.length).fill(null),i:0};go('test');rq()}
+function rq(){const q=st.qs[st.i],tot=st.qs.length;document.getElementById('q-cur').textContent=st.i+1;document.getElementById('q-tot').textContent=tot;document.getElementById('prog').style.width=((st.i+1)/tot*100)+'%';document.getElementById('q-txt').textContent=q.q;document.getElementById('q-opt').innerHTML=q.o.map((t,i)=>`<button class="option ${st.ans[st.i]==i?'picked':''}" onclick="ans(${i})">${String.fromCharCode(65+i)}. ${t}</button>`).join('');document.getElementById('b-prev').style.visibility=st.i==0?'hidden':'visible';document.getElementById('b-next').textContent=st.i==tot-1?'Dokončit ✓':'Další →'}
+function ans(i){st.ans[st.i]=i;rq()}
+function next(){if(st.ans[st.i]===null){alert('Vyber odpověď');return}if(st.i<st.qs.length-1){st.i++;rq()}else fin()}
+function prev(){if(st.i>0){st.i--;rq()}}
 
-function renderCats() {
-    const subs = LS.getSubjects();
-    const tests = LS.getTests();
-    document.getElementById('cat-grid').innerHTML = subs.map(s => {
-        const c = tests.filter(t => t.subject === s.id).length;
-        return `<div class="cat-card" onclick="pickCat('${s.id}','${s.name}')">
-            <div class="emoji">${s.emoji||'📖'}</div>
-            <div class="name">${s.name}</div>
-            <div class="count">${c} testů</div>
-        </div>`;
-    }).join('');
-}
+async function fin(){let ok=0;st.qs.forEach((q,i)=>{if(st.ans[i]==q.a)ok++});const tot=st.qs.length,pct=Math.round(ok/tot*100);const r={testId:st.test.id,name:'Žák',score:pct,correct:ok,total:tot,date:Date.now()};LS.ar(r);if(db)try{await db.collection('results').add(r)}catch(e){}document.getElementById('r-pct').textContent=pct+'%';document.getElementById('r-cnt').textContent=ok+' / '+tot;const msgs=[{min:90,t:'Výborně! 🌟'},{min:70,t:'Chytrá hlava! 👍'},{min:50,t:'Není to špatné. 📚'},{min:0,t:'Zkus to znovu! 💪'}];document.getElementById('r-msg').textContent=msgs.find(m=>pct>=m.min).t;const all=LS.gr().filter(x=>x.testId==st.test.id);const avg=all.length?Math.round(all.reduce((a,b)=>a+b.score,0)/all.length):pct;document.getElementById('r-avg').textContent=avg+'%';const d=pct-avg,e=document.getElementById('r-cmp');if(d>=10)e.textContent='Jsi nad průměrem o '+d+' %.';else if(d<=-10)e.textContent='Průměr je o '+Math.abs(d)+' % vyšší.';else e.textContent='Jsi těsně u průměru.';go('res')}
 
-function pickCat(id, name) {
-    const tests = LS.getTests().filter(t => t.subject === id);
-    document.getElementById('list-title').textContent = name;
-    document.getElementById('list-sub').textContent = `${tests.length} testů`;
-    document.getElementById('test-list').innerHTML = tests.length ? tests.map(t => `
-        <div class="test-item" onclick="startTest('${t.id}')">
-            <div>
-                <div class="title">${t.title}</div>
-                <div class="meta"><span class="tag blue">${t.class}</span><span class="tag">${t.questions.length} otázek</span></div>
-            </div>
-            <div style="font-size:1.4rem;color:var(--muted);">›</div>
-        </div>
-    `).join('') : '<p class="center small">Zatím žádný test.</p>';
-    go('list');
-}
-
-function startTest(id) {
-    const t = LS.getTests().find(x => x.id === id);
-    if (!t) return;
-    state = { test:t, questions: t.shuffle?[...t.questions].sort(()=>Math.random()-0.5):[...t.questions], answers: new Array(t.questions.length).fill(null), idx:0 };
-    go('test');
-    renderQ();
-}
-
-function renderQ() {
-    const q = state.questions[state.idx];
-    document.getElementById('q-num').textContent = state.idx + 1;
-    document.getElementById('q-total').textContent = state.questions.length;
-    document.getElementById('progress').style.width = ((state.idx+1)/state.questions.length*100)+'%';
-    document.getElementById('q-text').textContent = q.q;
-    document.getElementById('options').innerHTML = q.o.map((txt,i) => `
-        <button class="option ${state.answers[state.idx]===i?'picked':''}" onclick="pick(${i})">${String.fromCharCode(65+i)}. ${txt}</button>
-    `).join('');
-    document.getElementById('btn-prev').classList.toggle('hide', state.idx===0);
-    document.getElementById('btn-next').textContent = state.idx===state.questions.length-1?'Dokončit ✓':'Další →';
-}
-
-function pick(i) { state.answers[state.idx]=i; renderQ(); }
-
-function next() {
-    if (state.answers[state.idx]===null) { alert('Vyber odpověď.'); return; }
-    if (state.idx < state.questions.length-1) { state.idx++; renderQ(); }
-    else finish();
-}
-function prev() { if (state.idx>0) { state.idx--; renderQ(); } }
-
-async function finish() {
-    let ok = 0;
-    state.questions.forEach((q,i) => { if (state.answers[i]===q.a) ok++; });
-    const tot = state.questions.length;
-    const pct = Math.round(ok/tot*100);
-    
-    const r = { testId: state.test.id, name:'Žák', score:pct, correct:ok, total:tot, date:Date.now() };
-    LS.addResult(r);
-    await FB.saveResult(r);
-    
-    document.getElementById('res-pct').textContent = pct+'%';
-    document.getElementById('res-cnt').textContent = `${ok} / ${tot}`;
-    
-    const msgs = [{min:90,t:'Výborně! Skvělá práce! 🌟'},{min:70,t:'Chytrá hlava! 👍'},{min:50,t:'Není to špatné. 📚'},{min:0,t:'Zkus to znovu! 💪'}];
-    document.getElementById('res-msg').textContent = msgs.find(m=>pct>=m.min).t;
-    
-    const all = LS.getResults().filter(x=>x.testId===state.test.id);
-    const avg = all.length ? Math.round(all.reduce((a,b)=>a+b.score,0)/all.length) : pct;
-    document.getElementById('res-avg').textContent = avg+'%';
-    
-    const diff = pct-avg;
-    const el = document.getElementById('res-cmp');
-    if (diff>=10) el.textContent = `Jsi nad průměrem o ${diff} %.`;
-    else if (diff<=-10) el.textContent = `Průměr je o ${Math.abs(diff)} % vyšší.`;
-    else el.textContent = `Jsi těsně u průměru.`;
-    
-    go('result');
-}
-
-async function init() { seed(); await FB.load(); }
-document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
+async function init(){await sync();}
+document.readyState=='loading'?document.addEventListener('DOMContentLoaded',init):init();
 </script>
 </body>
 </html>
