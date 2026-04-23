@@ -40,9 +40,9 @@ h1{font-size:1.4rem}
 <div class="wrap">
 <div class="header"><h1>🎓 Školní testy</h1><button class="th" onclick="toggleTheme()">🌓</button></div>
 
-<div id="p-home"><div class="box c"><div style="font-size:3rem;margin-bottom:12px">👨‍🎓</div><h2 class="mt">Procvičování</h2><p class="s mt">Vyber předmět a zkus test. Bez přihlašování.</p><button class="btn btn-pr mt" onclick="go('cats')">Začít</button></div></div>
+<div id="p-home"><div class="box c"><div style="font-size:3rem;margin-bottom:12px">👨‍🎓</div><h2 class="mt">Procvičování</h2><p class="s mt">Vyber předmět a zkus test. Bez přihlašování.</p><button class="btn btn-pr mt" onclick="loadAndGo()">Začít</button></div></div>
 
-<div id="p-cats" class="hide"><div class="c mb"><h2>Vyber předmět</h2></div><div class="cat-grid" id="g-cats"></div><button class="btn btn-gr" onclick="go('home')">Zpět</button></div>
+<div id="p-cats" class="hide"><div class="c mb"><h2>Vyber předmět</h2><p class="s" id="load-msg">Načítání...</p></div><div class="cat-grid" id="g-cats"></div><button class="btn btn-gr" onclick="go('home')">Zpět</button></div>
 
 <div id="p-list" class="hide"><div class="c mb"><h2 id="l-title">Testy</h2><p class="s" id="l-sub"></p></div><div id="g-list"></div><button class="btn btn-gr mt" onclick="go('cats')">← Předměty</button></div>
 
@@ -53,32 +53,90 @@ h1{font-size:1.4rem}
 
 <script>
 const cfg={apiKey:"AIzaSyCsEtg1GEGDbZDawmLk-sfQfdauHFJaiko",authDomain:"diar-4f2e8.firebaseapp.com",projectId:"diar-4f2e8",storageBucket:"diar-4f2e8.firebasestorage.app",messagingSenderId:"19490498944",appId:"1:19490498944:web:733ab182f3a1e09483f965"};
-let db; try{firebase.initializeApp(cfg);db=firebase.firestore()}catch(e){alert("Firebase chyba")}
+let db, subjects=[], tests=[], results=[];
 
-const LS={k:'st_z',ld(){try{return JSON.parse(localStorage.getItem(this.k))||{}}catch(e){return{}}},sv(d){localStorage.setItem(this.k,JSON.stringify(d))},
-gs(){return this.ld().s||[]},ss(s){const d=this.ld();d.s=s;this.sv(d)},gt(){return this.ld().t||[]},st(t){const d=this.ld();d.t=t;this.sv(d)},
-gr(){return this.ld().r||[]},ar(r){const d=this.ld();d.r=d.r||[];d.r.push(r);this.sv(d)}}
-
-async function sync(){if(!db)return;try{const[a,b,c]=await Promise.all([db.collection('subjects').get(),db.collection('tests').get(),db.collection('results').get()]);const s=a.docs.map(x=>({id:x.id,...x.data()}));const t=b.docs.map(x=>({id:x.id,...x.data()}));const r=c.docs.map(x=>({id:x.id,...x.data()}));if(s.length)LS.ss(s);if(t.length)LS.st(t);const d=LS.ld();d.r=r.length?r:(d.r||[]);LS.sv(d)}catch(e){console.log(e)}}
+try{firebase.initializeApp(cfg);db=firebase.firestore();console.log("Firebase OK")}catch(e){alert("Firebase chyba: "+e.message)}
 
 function toggleTheme(){const h=document.documentElement,t=h.getAttribute('data-theme')=='light'?'dark':'light';h.setAttribute('data-theme',t);localStorage.setItem('theme',t)}
 (function(){const t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t)})();
 
-function go(p){document.querySelectorAll('[id^="p-"]').forEach(e=>e.classList.add('hide'));document.getElementById('p-'+p).classList.remove('hide');if(p=='cats')rc();window.scrollTo(0,0)}
-function rc(){const s=LS.gs(),t=LS.gt();document.getElementById('g-cats').innerHTML=s.map(x=>{const c=t.filter(y=>y.subject==x.id).length;return`<div class="cat-card" onclick="pick('${x.id}','${x.name||x.n}')"><div class="e">${x.emoji||x.e||'📖'}</div><div class="n">${x.name||x.n}</div><div class="c2">${c} testů</div></div>`}).join('')}
-function pick(id,name){const t=LS.gt().filter(x=>x.subject==id);document.getElementById('l-title').textContent=name;document.getElementById('l-sub').textContent=t.length+' testů';document.getElementById('g-list').innerHTML=t.length?t.map(x=>`<div class="test-item" onclick="start('${x.id}')"><div><div class="t">${x.title}</div><div class="s mt"><span class="tag bl">${x.class}</span><span class="tag">${x.questions.length} otázek</span></div></div><div style="font-size:1.4rem;color:var(--muted)">›</div></div>`).join(''):'<p class="c s">Zatím nic.</p>';go('list')}
+function go(p){document.querySelectorAll('[id^="p-"]').forEach(e=>e.classList.add('hide'));document.getElementById('p-'+p).classList.remove('hide');window.scrollTo(0,0)}
+
+// VŽDY načítá z Firebase, ne z LocalStorage
+async function loadAndGo(){go('cats');document.getElementById('load-msg').textContent='Načítání...';await loadData();renderCats()}
+
+async function loadData(){
+    if(!db){document.getElementById('load-msg').textContent='Offline - žádná data';return}
+    try{
+        const[snap,tsnap,rsnap]=await Promise.all([
+            db.collection('subjects').get(),
+            db.collection('tests').get(),
+            db.collection('results').get()
+        ]);
+        subjects=snap.docs.map(d=>({id:d.id,...d.data()}));
+        tests=tsnap.docs.map(d=>({id:d.id,...d.data()}));
+        results=rsnap.docs.map(d=>({id:d.id,...d.data()}));
+        document.getElementById('load-msg').textContent=subjects.length?`${subjects.length} předmětů, ${tests.length} testů`:'Žádná data - učitelka musí přidat testy';
+    }catch(e){console.error(e);document.getElementById('load-msg').textContent='Chyba načítání';}
+}
+
+function renderCats(){
+    const g=document.getElementById('g-cats');
+    if(!subjects.length){g.innerHTML='<p class="c s">Zatím žádné předměty.</p>';return}
+    g.innerHTML=subjects.map(x=>{
+        const c=tests.filter(t=>t.subject==x.id||(t.subject&&t.subject.id==x.id)).length;
+        return`<div class="cat-card" onclick="pick('${x.id}','${x.n||x.name}')"><div class="e">${x.e||x.emoji||'📖'}</div><div class="n">${x.n||x.name}</div><div class="c2">${c} testů</div></div>`
+    }).join('');
+}
+
+function pick(id,name){
+    const t=tests.filter(x=>x.subject==id||(x.subject&&x.subject.id==id));
+    document.getElementById('l-title').textContent=name;
+    document.getElementById('l-sub').textContent=t.length+' testů';
+    document.getElementById('g-list').innerHTML=t.length?t.map(x=>`<div class="test-item" onclick="start('${x.id}')"><div><div class="t">${x.title}</div><div class="s mt"><span class="tag bl">${x.class}</span><span class="tag">${x.questions.length} otázek</span></div></div><div style="font-size:1.4rem;color:var(--muted)">›</div></div>`).join(''):'<p class="c s">Zatím nic.</p>';
+    go('list');
+}
 
 let st={test:null,qs:[],ans:[],i:0};
-function start(id){const t=LS.gt().find(x=>x.id==id);if(!t)return;st={test:t,qs:t.shuffle?[...t.questions].sort(()=>Math.random()-.5):[...t.questions],ans:new Array(t.questions.length).fill(null),i:0};go('test');rq()}
-function rq(){const q=st.qs[st.i],tot=st.qs.length;document.getElementById('q-cur').textContent=st.i+1;document.getElementById('q-tot').textContent=tot;document.getElementById('prog').style.width=((st.i+1)/tot*100)+'%';document.getElementById('q-txt').textContent=q.q;document.getElementById('q-opt').innerHTML=q.o.map((t,i)=>`<button class="option ${st.ans[st.i]==i?'picked':''}" onclick="ans(${i})">${String.fromCharCode(65+i)}. ${t}</button>`).join('');document.getElementById('b-prev').style.visibility=st.i==0?'hidden':'visible';document.getElementById('b-next').textContent=st.i==tot-1?'Dokončit ✓':'Další →'}
+function start(id){
+    const t=tests.find(x=>x.id==id);
+    if(!t)return;
+    st={test:t,qs:t.shuffle?[...t.questions].sort(()=>Math.random()-.5):[...t.questions],ans:new Array(t.questions.length).fill(null),i:0};
+    go('test');rq();
+}
+function rq(){
+    const q=st.qs[st.i],tot=st.qs.length;
+    document.getElementById('q-cur').textContent=st.i+1;
+    document.getElementById('q-tot').textContent=tot;
+    document.getElementById('prog').style.width=((st.i+1)/tot*100)+'%';
+    document.getElementById('q-txt').textContent=q.q;
+    document.getElementById('q-opt').innerHTML=q.o.map((t,i)=>`<button class="option ${st.ans[st.i]==i?'picked':''}" onclick="ans(${i})">${String.fromCharCode(65+i)}. ${t}</button>`).join('');
+    document.getElementById('b-prev').style.visibility=st.i==0?'hidden':'visible';
+    document.getElementById('b-next').textContent=st.i==tot-1?'Dokončit ✓':'Další →';
+}
 function ans(i){st.ans[st.i]=i;rq()}
 function next(){if(st.ans[st.i]===null){alert('Vyber odpověď');return}if(st.i<st.qs.length-1){st.i++;rq()}else fin()}
 function prev(){if(st.i>0){st.i--;rq()}}
 
-async function fin(){let ok=0;st.qs.forEach((q,i)=>{if(st.ans[i]==q.a)ok++});const tot=st.qs.length,pct=Math.round(ok/tot*100);const r={testId:st.test.id,name:'Žák',score:pct,correct:ok,total:tot,date:Date.now()};LS.ar(r);if(db)try{await db.collection('results').add(r)}catch(e){}document.getElementById('r-pct').textContent=pct+'%';document.getElementById('r-cnt').textContent=ok+' / '+tot;const msgs=[{min:90,t:'Výborně! 🌟'},{min:70,t:'Chytrá hlava! 👍'},{min:50,t:'Není to špatné. 📚'},{min:0,t:'Zkus to znovu! 💪'}];document.getElementById('r-msg').textContent=msgs.find(m=>pct>=m.min).t;const all=LS.gr().filter(x=>x.testId==st.test.id);const avg=all.length?Math.round(all.reduce((a,b)=>a+b.score,0)/all.length):pct;document.getElementById('r-avg').textContent=avg+'%';const d=pct-avg,e=document.getElementById('r-cmp');if(d>=10)e.textContent='Jsi nad průměrem o '+d+' %.';else if(d<=-10)e.textContent='Průměr je o '+Math.abs(d)+' % vyšší.';else e.textContent='Jsi těsně u průměru.';go('res')}
-
-async function init(){await sync();}
-document.readyState=='loading'?document.addEventListener('DOMContentLoaded',init):init();
+async function fin(){
+    let ok=0;st.qs.forEach((q,i)=>{if(st.ans[i]==q.a)ok++});
+    const tot=st.qs.length,pct=Math.round(ok/tot*100);
+    const r={testId:st.test.id,name:'Žák',score:pct,correct:ok,total:tot,date:Date.now()};
+    // Uložit do Firebase
+    if(db)try{await db.collection('results').add(r);results.push(r)}catch(e){console.error(e)}
+    document.getElementById('r-pct').textContent=pct+'%';
+    document.getElementById('r-cnt').textContent=ok+' / '+tot;
+    const msgs=[{min:90,t:'Výborně! 🌟'},{min:70,t:'Chytrá hlava! 👍'},{min:50,t:'Není to špatné. 📚'},{min:0,t:'Zkus to znovu! 💪'}];
+    document.getElementById('r-msg').textContent=msgs.find(m=>pct>=m.min).t;
+    const all=results.filter(x=>x.testId==st.test.id);
+    const avg=all.length?Math.round(all.reduce((a,b)=>a+b.score,0)/all.length):pct;
+    document.getElementById('r-avg').textContent=avg+'%';
+    const d=pct-avg,e=document.getElementById('r-cmp');
+    if(d>=10)e.textContent='Jsi nad průměrem o '+d+' %.';
+    else if(d<=-10)e.textContent='Průměr je o '+Math.abs(d)+' % vyšší.';
+    else e.textContent='Jsi těsně u průměru.';
+    go('res');
+}
 </script>
 </body>
 </html>
