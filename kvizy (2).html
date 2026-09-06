@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kvízy</title>
+<style>
+  :root{
+    --ms-blue:#0078D4;
+    --ms-blue-dark:#106EBE;
+    --ms-blue-darker:#005A9E;
+    --bg:#FAF9F8;
+    --surface:#FFFFFF;
+    --border:#EDEBE9;
+    --border-strong:#D2D0CE;
+    --text:#201F1E;
+    --text-secondary:#605E5C;
+    --success:#107C10;
+    --success-bg:#DFF6DD;
+    --danger:#D83B01;
+    --danger-bg:#FDE7E9;
+    --radius:4px;
+    --shadow-1:0 1.6px 3.6px rgba(0,0,0,.13),0 0.3px 0.9px rgba(0,0,0,.1);
+    --shadow-2:0 6.4px 14.4px rgba(0,0,0,.13),0 1.2px 3.6px rgba(0,0,0,.1);
+    font-family:'Segoe UI','Segoe UI Web (West European)',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);height:100%;}
+  body{display:flex;flex-direction:column;min-height:100vh;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  .hidden{display:none !important;}
+
+  /* -------- App bar -------- */
+  #app-bar{
+    height:48px;flex:0 0 48px;background:var(--surface);border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;padding:0 16px;
+  }
+  #app-bar .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;}
+  #app-bar .brand .logo{width:20px;height:20px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;}
+  #app-bar .brand .logo span{background:var(--ms-blue);}
+  #app-bar .brand .logo span:nth-child(2){background:#7FBA00;}
+  #app-bar .brand .logo span:nth-child(3){background:#00A4EF;}
+  #app-bar .brand .logo span:nth-child(4){background:#FFB900;}
+  #app-bar nav{display:flex;gap:4px;align-items:center;}
+  .link-btn{
+    background:transparent;border:none;color:var(--text-secondary);font-size:13px;padding:6px 10px;border-radius:var(--radius);
+  }
+  .link-btn:hover{background:var(--border);color:var(--text);}
+
+  main{flex:1;display:flex;flex-direction:column;overflow:auto;}
+
+  /* -------- Buttons -------- */
+  .btn{
+    border:1px solid var(--ms-blue);background:var(--ms-blue);color:#fff;padding:8px 18px;
+    border-radius:var(--radius);font-size:14px;font-weight:600;transition:background .1s,border-color .1s;
+  }
+  .btn:hover{background:var(--ms-blue-dark);border-color:var(--ms-blue-dark);}
+  .btn:disabled{background:#C8C6C4;border-color:#C8C6C4;cursor:not-allowed;}
+  .btn.secondary{background:var(--surface);color:var(--ms-blue);border:1px solid var(--border-strong);}
+  .btn.secondary:hover{background:var(--border);}
+  .btn.danger{background:var(--surface);color:var(--danger);border:1px solid var(--border-strong);}
+  .btn.danger:hover{background:var(--danger-bg);}
+  .btn.small{padding:5px 12px;font-size:12.5px;}
+
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--text);}
+  .field input[type=text],.field input[type=email],.field input[type=password],.field textarea{
+    width:100%;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:14px;background:var(--surface);
+  }
+  .field input:focus,.field textarea:focus{outline:2px solid var(--ms-blue);outline-offset:-1px;border-color:var(--ms-blue);}
+  .field textarea{resize:vertical;min-height:50px;}
+
+  /* -------- MENU VIEW (dlaždice) -------- */
+  #view-menu{padding:36px 32px;max-width:1100px;margin:0 auto;width:100%;}
+  #view-menu h1{font-size:26px;font-weight:600;margin:0 0 4px;}
+  #view-menu p.sub{color:var(--text-secondary);margin:0 0 28px;font-size:14px;}
+  #tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px;}
+  .tile{
+    aspect-ratio:1/1;border:none;border-radius:6px;color:#fff;display:flex;flex-direction:column;
+    justify-content:space-between;padding:16px;text-align:left;box-shadow:var(--shadow-1);
+    transition:transform .12s ease,box-shadow .12s ease;position:relative;overflow:hidden;
+  }
+  .tile:hover{transform:translateY(-3px);box-shadow:var(--shadow-2);}
+  .tile .tile-icon{font-size:28px;line-height:1;}
+  .tile .tile-title{font-size:15px;font-weight:600;line-height:1.25;}
+  .tile .tile-meta{font-size:11.5px;opacity:.85;margin-top:2px;}
+  #tiles-empty{color:var(--text-secondary);font-size:14px;padding:20px 0;}
+
+  /* -------- Modal (jméno žáka) -------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:50;
+  }
+  .modal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-2);width:100%;max-width:360px;padding:24px;}
+  .modal h2{margin:0 0 14px;font-size:17px;font-weight:600;}
+  .modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+
+  /* -------- TEST VIEW -------- */
+  #view-test{max-width:640px;margin:0 auto;width:100%;padding:32px 20px;}
+  #test-progress-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:20px;}
+  #test-progress-bar{height:100%;background:var(--ms-blue);width:0%;transition:width .2s ease;}
+  #test-progress-label{font-size:12.5px;color:var(--text-secondary);margin-bottom:6px;}
+  #test-card{background:var(--surface);border:1px solid var(--border);border-top:4px solid var(--ms-blue);border-radius:6px;padding:26px;box-shadow:var(--shadow-1);}
+  #test-question-text{font-size:19px;font-weight:600;margin:0 0 20px;line-height:1.4;}
+  .option-row{
+    display:flex;align-items:center;gap:12px;border:1px solid var(--border-strong);border-radius:var(--radius);
+    padding:12px 14px;margin-bottom:10px;background:var(--surface);transition:border-color .1s,background .1s;
+  }
+  .option-row:hover{border-color:var(--ms-blue);}
+  .option-row.selected{border-color:var(--ms-blue);background:#EFF6FC;}
+  .option-row .letter{
+    width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border-strong);display:flex;align-items:center;
+    justify-content:center;font-size:12.5px;font-weight:700;color:var(--text-secondary);flex:0 0 26px;
+  }
+  .option-row.selected .letter{border-color:var(--ms-blue);background:var(--ms-blue);color:#fff;}
+  .option-row .opt-text{font-size:14.5px;}
+  #test-nav{display:flex;justify-content:space-between;margin-top:22px;}
+  #test-title-bar{font-size:13px;color:var(--text-secondary);margin-bottom:4px;}
+
+  /* -------- RESULT VIEW -------- */
+  #view-result{max-width:640px;margin:0 auto;width:100%;padding:32px 20px;}
+  #result-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:32px;text-align:center;box-shadow:var(--shadow-1);}
+  #result-score{font-size:52px;font-weight:700;color:var(--ms-blue);margin:6px 0 0;}
+  #result-score span{font-size:20px;color:var(--text-secondary);font-weight:600;}
+  #result-percent{font-size:14px;color:var(--text-secondary);margin-bottom:18px;}
+  #result-breakdown{text-align:left;margin-top:22px;border-top:1px solid var(--border);padding-top:16px;}
+  .rb-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
+  .rb-item:last-child{border-bottom:none;}
+  .rb-badge{flex:0 0 20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700;}
+  .rb-badge.ok{background:var(--success);}
+  .rb-badge.bad{background:var(--danger);}
+  .rb-answer{color:var(--text-secondary);font-size:12.5px;margin-top:2px;}
+  #result-actions{display:flex;gap:10px;justify-content:center;margin-top:24px;}
+
+  /* -------- TEACHER LOGIN -------- */
+  #view-teacher-login{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;}
+  #login-card{background:var(--surface);width:100%;max-width:360px;border-radius:6px;box-shadow:var(--shadow-2);overflow:hidden;}
+  #login-card .top-bar{height:6px;background:var(--ms-blue);}
+  #login-card .content{padding:28px;}
+  #login-card h1{font-size:19px;margin:0 0 4px;}
+  #login-card p{font-size:13px;color:var(--text-secondary);margin:0 0 20px;}
+  #login-error{color:var(--danger);font-size:13px;margin-top:10px;display:none;}
+
+  /* -------- TEACHER DASHBOARD -------- */
+  #view-teacher{flex:1;display:flex;min-height:0;}
+  #teacher-nav{
+    width:210px;flex:0 0 210px;background:#F3F2F1;border-right:1px solid var(--border);padding:16px 8px;
+  }
+  #teacher-nav .nav-item{
+    display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius);font-size:13.5px;
+    color:var(--text);margin-bottom:2px;background:transparent;border:none;width:100%;text-align:left;
+  }
+  #teacher-nav .nav-item:hover{background:#E1DFDD;}
+  #teacher-nav .nav-item.active{background:#E1EFFA;color:var(--ms-blue-darker);font-weight:600;}
+  #teacher-nav hr{border:none;border-top:1px solid var(--border-strong);margin:10px 4px;}
+  #teacher-content{flex:1;padding:26px 32px;overflow:auto;}
+  #teacher-content h1{font-size:21px;margin:0 0 18px;}
+
+  table.data-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  table.data-table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.02em;color:var(--text-secondary);background:#F3F2F1;padding:9px 12px;border-bottom:1px solid var(--border);}
+  table.data-table td{padding:10px 12px;font-size:13.5px;border-bottom:1px solid var(--border);}
+  table.data-table tr:last-child td{border-bottom:none;}
+  table.data-table tr:hover td{background:#FAF9F8;}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;box-shadow:var(--shadow-1);}
+  .card + .card{margin-top:16px;}
+
+  .question-block{border:1px solid var(--border-strong);border-radius:var(--radius);padding:16px;margin-bottom:14px;background:#FAF9F8;}
+  .question-block .q-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .question-block .q-head strong{font-size:13px;}
+  .opt-edit-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .opt-edit-row input[type=radio]{accent-color:var(--ms-blue);width:16px;height:16px;flex:0 0 16px;}
+  .opt-edit-row input[type=text]{flex:1;padding:6px 8px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:13.5px;}
+  .opt-letter-badge{width:20px;height:20px;border-radius:50%;background:var(--border-strong);color:var(--text);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:0 0 20px;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px;}
+  .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .stat-box .num{font-size:26px;font-weight:700;color:var(--ms-blue);}
+  .stat-box .lbl{font-size:12.5px;color:var(--text-secondary);margin-top:2px;}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .badge-active{background:var(--success-bg);color:var(--success);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
+  .badge-inactive{background:#F3F2F1;color:var(--text-secondary);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
+
+  #loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;z-index:100;font-size:13px;color:var(--text-secondary);}
+  .spinner{width:22px;height:22px;border:3px solid var(--border);border-top-color:var(--ms-blue);border-radius:50%;animation:spin .7s linear infinite;margin-right:10px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #loading-overlay.hidden{display:none;}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#201F1E;color:#fff;padding:10px 18px;border-radius:var(--radius);font-size:13.5px;box-shadow:var(--shadow-2);z-index:200;opacity:0;transition:opacity .2s;pointer-events:none;}
+  .toast.show{opacity:1;}
+
+  @media(max-width:700px){
+    #view-teacher{flex-direction:column;}
+    #teacher-nav{width:100%;flex:none;display:flex;overflow-x:auto;padding:8px;}
+    #teacher-nav .nav-item{white-space:nowrap;}
+    #teacher-nav hr{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="app-bar">
+  <div class="brand">
+    <div class="logo"><span></span><span></span><span></span><span></span></div>
+    <span id="brand-title">Kvízy</span>
+  </div>
+  <nav>
+    <button class="link-btn" id="btn-go-menu">Hlavní menu</button>
+    <button class="link-btn" id="btn-go-teacher">Pro učitele</button>
+  </nav>
+</div>
+
+<main>
+
+  <!-- ================= MENU (dlaždice) ================= -->
+  <section id="view-menu">
+    <h1>Vyber si test</h1>
+    <p class="sub">Klikni na dlaždici a spusť test.</p>
+    <div id="tiles"></div>
+    <div id="tiles-empty" class="hidden">Zatím tu nejsou žádné testy.</div>
+  </section>
+
+  <!-- ================= TEST ================= -->
+  <section id="view-test" class="hidden">
+    <div id="test-title-bar"></div>
+    <div id="test-progress-label"></div>
+    <div id="test-progress-track"><div id="test-progress-bar"></div></div>
+    <div id="test-card">
+      <h2 id="test-question-text"></h2>
+      <div id="test-options"></div>
+      <div id="test-nav">
+        <button class="btn secondary" id="btn-test-cancel">Zrušit</button>
+        <button class="btn" id="btn-test-next" disabled>Další</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= RESULT ================= -->
+  <section id="view-result" class="hidden">
+    <div id="result-card">
+      <div style="font-size:13px;color:var(--text-secondary);">Výsledek testu</div>
+      <div id="result-score">0<span>/0</span></div>
+      <div id="result-percent"></div>
+      <div id="result-breakdown"></div>
+      <div id="result-actions">
+        <button class="btn secondary" id="btn-result-retry">Zkusit znovu</button>
+        <button class="btn" id="btn-result-menu">Zpět na menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TEACHER LOGIN ================= -->
+  <section id="view-teacher-login" class="hidden">
+    <div id="login-card">
+      <div class="top-bar"></div>
+      <div class="content">
+        <h1>Přihlášení učitele</h1>
+        <p>Přístup pouze pro učitele — vytváření testů a statistiky.</p>
+        <div class="field">
+          <label for="login-password">Heslo</label>
+          <input type="password" id="login-password" autocomplete="current-password">
+        </div>
+        <button class="btn" id="btn-login" style="width:100%;">Přihlásit se</button>
+        <div id="login-error"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TEACHER DASHBOARD ================= -->
+  <section id="view-teacher" class="hidden">
+    <div id="teacher-nav">
+      <button class="nav-item active" data-panel="panel-tests">📋 Testy</button>
+      <button class="nav-item" data-panel="panel-new">➕ Nový test</button>
+      <button class="nav-item" data-panel="panel-stats">📊 Statistiky</button>
+      <hr>
+      <button class="nav-item" id="btn-logout">🚪 Odhlásit se</button>
+    </div>
+    <div id="teacher-content">
+
+      <div id="panel-tests" class="panel">
+        <div class="toolbar">
+          <h1 style="margin:0;">Testy</h1>
+          <button class="btn small" id="btn-new-from-list">Nový test</button>
+        </div>
+        <table class="data-table" id="teacher-tests-table">
+          <thead><tr><th>Název</th><th>Otázky</th><th>Stav</th><th>Pokusů</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="panel-new" class="panel hidden">
+        <h1 id="editor-heading">Nový test</h1>
+        <div class="card">
+          <div class="field">
+            <label for="edit-title">Název testu</label>
+            <input type="text" id="edit-title" placeholder="Např. Vyjmenovaná slova po B">
+          </div>
+          <div class="field">
+            <label for="edit-desc">Popis (nepovinné)</label>
+            <textarea id="edit-desc" placeholder="Krátký popis, co test obsahuje"></textarea>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;margin-bottom:6px;">
+            <input type="checkbox" id="edit-active" checked style="accent-color:var(--ms-blue);width:16px;height:16px;">
+            Test je aktivní (viditelný v hlavním menu)
+          </label>
+        </div>
+
+        <h2 style="font-size:15px;margin:20px 0 10px;">Otázky</h2>
+        <div id="questions-editor"></div>
+        <button class="btn secondary small" id="btn-add-question">+ Přidat otázku</button>
+
+        <div style="margin-top:24px;display:flex;gap:10px;">
+          <button class="btn" id="btn-save-test">Uložit test</button>
+          <button class="btn secondary" id="btn-cancel-edit">Zrušit</button>
+        </div>
+      </div>
+
+      <div id="panel-stats" class="panel hidden">
+        <h1>Statistiky</h1>
+        <div class="field" style="max-width:360px;">
+          <label for="stats-test-select">Vyber test</label>
+          <select id="stats-test-select" style="width:100%;padding:8px;border:1px solid var(--border-strong);border-radius:var(--radius);"></select>
+        </div>
+        <div id="stats-content"></div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<div id="loading-overlay"><div class="spinner"></div>Načítání…</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  // Pojistka: pokud se appka do 8s nenačte (chyba sítě / Firebase), ukaž diagnostiku místo věčného točení kolečka
+  window.addEventListener("load", function(){
+    setTimeout(function(){
+      var ov = document.getElementById("loading-overlay");
+      if (ov && !ov.classList.contains("hidden")) {
+        ov.innerHTML =
+          '<div style="max-width:440px;background:#fff;border-radius:6px;padding:24px;box-shadow:0 6px 16px rgba(0,0,0,.15);text-align:left;font-size:13.5px;line-height:1.6;color:#201F1E;">' +
+          '<strong style="color:#D83B01;">Aplikace se nenačetla.</strong><br><br>' +
+          'Nejčastější příčiny — zkontroluj v tomto pořadí:<br>' +
+          '1) Soubor je otevřený dvojklikem přímo z disku (file://) — musí běžet přes http(s), např. na Firebase Hosting.<br>' +
+          '2) Ve Firebase konzoli ještě není založená Firestore Database.<br>' +
+          '3) Firewall/adblock blokuje gstatic.com nebo cdnjs.cloudflare.com.<br><br>' +
+          'Podrobnou chybu uvidíš v konzoli prohlížeče (F12 → Console).' +
+          '<div style="margin-top:16px;text-align:right;"><button onclick="document.getElementById(\'loading-overlay\').classList.add(\'hidden\')" style="background:#0078D4;color:#fff;border:none;padding:7px 16px;border-radius:4px;font-size:13px;cursor:pointer;">Zavřít</button></div>' +
+          '</div>';
+      }
+    }, 8000);
+  });
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc,
+  setDoc, query, orderBy, serverTimestamp, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+// Firebase Auth se nepoužívá — přístup učitele je chráněný jednoduchým heslem (viz TEACHER_PASSWORD níže).
+// POZOR: toto NENÍ zabezpečení na úrovni databáze — je to jen zámek v uživatelském rozhraní.
+// Kdokoliv technicky zdatný, kdo zná adresu Firestore projektu, by teoreticky mohl zapisovat přímo,
+// pokud to dovolí Firestore Rules. Firestore Rules proto musí mít "allow write: if true" (viz konec konverzace).
+const TEACHER_PASSWORD = "4441"; // <-- sem si dej vlastní heslo
+
+// ====================================================================
+// TODO: DOPLŇ SVOJI FIREBASE KONFIGURACI (Project settings -> SDK setup)
+// ====================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCllGBVpdxMX4D-_jUfKLgvYvxZ708HpDw",
+  authDomain: "zsbt-1192c.firebaseapp.com",
+  projectId: "zsbt-1192c",
+  storageBucket: "zsbt-1192c.firebasestorage.app",
+  messagingSenderId: "62680870452",
+  appId: "1:62680870452:web:ecd43e0507f57f97622461"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ------------------------------------------------------------------
+// Pomocné UI funkce
+// ------------------------------------------------------------------
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+const loadingEl = $("#loading-overlay");
+const toastEl = $("#toast");
+
+function showLoading(v){ loadingEl.classList.toggle("hidden", !v); }
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  setTimeout(()=>toastEl.classList.remove("show"), 2400);
+}
+function escapeHtml(s){
+  return (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+const TILE_COLORS = ["#0078D4","#107C10","#5C2D91","#D83B01","#008272","#B4009E","#886CE4","#CA5010"];
+function colorForIndex(i){ return TILE_COLORS[i % TILE_COLORS.length]; }
+
+function switchView(id){
+  ["view-menu","view-test","view-result","view-teacher-login","view-teacher"].forEach(v=>{
+    $("#"+v).classList.toggle("hidden", v !== id);
+  });
+}
+
+// ====================================================================
+// HLAVNÍ MENU — dlaždice s testy
+// ====================================================================
+let allTests = [];
+
+async function loadMenuTests(){
+  showLoading(true);
+  try{
+    const snap = await getDocs(query(collection(db,"tests"), orderBy("createdAt","desc")));
+    allTests = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderTiles();
+  }catch(e){
+    console.error(e);
+    toast("Nepodařilo se načíst testy.");
+  }finally{
+    showLoading(false);
+  }
+}
+
+function renderTiles(){
+  const wrap = $("#tiles");
+  const visible = allTests.filter(t => t.active !== false);
+  wrap.innerHTML = "";
+  $("#tiles-empty").classList.toggle("hidden", visible.length !== 0);
+  visible.forEach((t,i)=>{
+    const btn = document.createElement("button");
+    btn.className = "tile";
+    btn.style.background = colorForIndex(i);
+    btn.innerHTML = `
+      <div class="tile-icon">📝</div>
+      <div>
+        <div class="tile-title">${escapeHtml(t.title)}</div>
+        <div class="tile-meta">${(t.questionCount||0)} otázek</div>
+      </div>`;
+    btn.addEventListener("click", ()=> openStartModal(t));
+    wrap.appendChild(btn);
+  });
+}
+
+function openStartModal(test){
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `
+    <div class="modal">
+      <h2>${escapeHtml(test.title)}</h2>
+      ${test.description ? `<p style="color:var(--text-secondary);font-size:13.5px;margin-top:-8px;">${escapeHtml(test.description)}</p>` : ""}
+      <div class="field" style="margin-top:14px;">
+        <label for="student-name">Tvoje jméno</label>
+        <input type="text" id="student-name" placeholder="Jméno a příjmení">
+      </div>
+      <div class="actions">
+        <button class="btn secondary" id="modal-cancel">Zrušit</button>
+        <button class="btn" id="modal-start">Spustit test</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const nameInput = overlay.querySelector("#student-name");
+  nameInput.focus();
+  overlay.querySelector("#modal-cancel").onclick = ()=> overlay.remove();
+  overlay.querySelector("#modal-start").onclick = async ()=>{
+    const name = nameInput.value.trim();
+    if(!name){ nameInput.style.borderColor = "var(--danger)"; return; }
+    overlay.remove();
+    await startTest(test, name);
+  };
+}
+
+// ====================================================================
+// PRŮBĚH TESTU
+// ====================================================================
+let activeTest = null;
+let activeQuestions = [];
+let activeStudentName = "";
+let currentIndex = 0;
+let selectedOption = null;
+let studentAnswers = [];
+
+async function startTest(test, studentName){
+  showLoading(true);
+  try{
+    const snap = await getDocs(query(collection(db,"tests",test.id,"questions"), orderBy("order","asc")));
+    activeQuestions = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    if(activeQuestions.length === 0){
+      toast("Tento test zatím nemá žádné otázky.");
+      return;
+    }
+    activeTest = test;
+    activeStudentName = studentName;
+    currentIndex = 0;
+    studentAnswers = [];
+    switchView("view-test");
+    renderQuestion();
+  }catch(e){
+    console.error(e);
+    toast("Test se nepodařilo načíst.");
+  }finally{
+    showLoading(false);
+  }
+}
+
+function renderQuestion(){
+  const q = activeQuestions[currentIndex];
+  selectedOption = null;
+  $("#test-title-bar").textContent = activeTest.title;
+  $("#test-progress-label").textContent = `Otázka ${currentIndex+1} z ${activeQuestions.length}`;
+  $("#test-progress-bar").style.width = `${(currentIndex/activeQuestions.length)*100}%`;
+  $("#test-question-text").textContent = q.text;
+  const optsWrap = $("#test-options");
+  optsWrap.innerHTML = "";
+  const letters = ["A","B","C","D"];
+  q.options.forEach((opt, idx)=>{
+    const row = document.createElement("div");
+    row.className = "option-row";
+    row.innerHTML = `<div class="letter">${letters[idx]}</div><div class="opt-text">${escapeHtml(opt)}</div>`;
+    row.addEventListener("click", ()=>{
+      $$(".option-row").forEach(r=>r.classList.remove("selected"));
+      row.classList.add("selected");
+      selectedOption = idx;
+      $("#btn-test-next").disabled = false;
+    });
+    optsWrap.appendChild(row);
+  });
+  $("#btn-test-next").disabled = true;
+  $("#btn-test-next").textContent = currentIndex === activeQuestions.length - 1 ? "Vyhodnotit" : "Další";
+}
+
+$("#btn-test-cancel").addEventListener("click", ()=>{
+  if(confirm("Opravdu chceš test ukončit? Odpovědi se neuloží.")){
+    switchView("view-menu");
+  }
+});
+
+$("#btn-test-next").addEventListener("click", ()=>{
+  const q = activeQuestions[currentIndex];
+  studentAnswers.push({
+    questionId: q.id,
+    question: q.text,
+    options: q.options,
+    selected: selectedOption,
+    correct: q.correct,
+    isCorrect: selectedOption === q.correct
+  });
+  if(currentIndex < activeQuestions.length - 1){
+    currentIndex++;
+    renderQuestion();
+  }else{
+    finishTest();
+  }
+});
+
+async function finishTest(){
+  const score = studentAnswers.filter(a=>a.isCorrect).length;
+  const total = studentAnswers.length;
+  showResult(score, total);
+  try{
+    await addDoc(collection(db,"results"), {
+      testId: activeTest.id,
+      testTitle: activeTest.title,
+      studentName: activeStudentName,
+      score, total,
+      percentage: Math.round((score/total)*100),
+      answers: studentAnswers,
+      timestamp: serverTimestamp()
+    });
+  }catch(e){
+    console.error("Nepodařilo se uložit výsledek:", e);
+  }
+}
+
+function showResult(score, total){
+  switchView("view-result");
+  $("#result-score").innerHTML = `${score}<span>/${total}</span>`;
+  $("#result-percent").textContent = `${Math.round((score/total)*100)} % úspěšnost`;
+  const letters = ["A","B","C","D"];
+  const wrap = $("#result-breakdown");
+  wrap.innerHTML = "";
+  studentAnswers.forEach((a,i)=>{
+    const div = document.createElement("div");
+    div.className = "rb-item";
+    div.innerHTML = `
+      <div class="rb-badge ${a.isCorrect?'ok':'bad'}">${a.isCorrect?'✓':'✕'}</div>
+      <div>
+        <div>${i+1}. ${escapeHtml(a.question)}</div>
+        <div class="rb-answer">
+          Tvoje odpověď: ${a.selected!=null ? letters[a.selected]+') '+escapeHtml(a.options[a.selected]) : '—'}
+          ${!a.isCorrect ? `<br>Správně: ${letters[a.correct]}) ${escapeHtml(a.options[a.correct])}` : ""}
+        </div>
+      </div>`;
+    wrap.appendChild(div);
+  });
+}
+
+$("#btn-result-retry").addEventListener("click", ()=> startTest(activeTest, activeStudentName));
+$("#btn-result-menu").addEventListener("click", ()=> switchView("view-menu"));
+$("#btn-go-menu").addEventListener("click", ()=> switchView("view-menu"));
+
+// ====================================================================
+// UČITEL — přihlášení
+// ====================================================================
+function isTeacherLoggedIn(){
+  return sessionStorage.getItem("teacherLoggedIn") === "1";
+}
+
+$("#btn-go-teacher").addEventListener("click", ()=>{
+  if(isTeacherLoggedIn()){
+    switchView("view-teacher");
+    loadTeacherTests();
+  }else{
+    $("#login-password").value = "";
+    $("#login-error").style.display = "none";
+    switchView("view-teacher-login");
+  }
+});
+
+$("#btn-login").addEventListener("click", ()=>{
+  const pass = $("#login-password").value;
+  $("#login-error").style.display = "none";
+  if(pass === TEACHER_PASSWORD){
+    sessionStorage.setItem("teacherLoggedIn", "1");
+    switchView("view-teacher");
+    loadTeacherTests();
+  }else{
+    $("#login-error").textContent = "Nesprávné heslo.";
+    $("#login-error").style.display = "block";
+  }
+});
+$("#login-password").addEventListener("keydown", (e)=>{
+  if(e.key === "Enter") $("#btn-login").click();
+});
+
+$("#btn-logout").addEventListener("click", ()=>{
+  sessionStorage.removeItem("teacherLoggedIn");
+  switchView("view-menu");
+});
+
+// ====================================================================
+// UČITEL — navigace mezi panely
+// ====================================================================
+$$("#teacher-nav .nav-item[data-panel]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    $$("#teacher-nav .nav-item[data-panel]").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    $$(".panel").forEach(p=>p.classList.add("hidden"));
+    $("#"+btn.dataset.panel).classList.remove("hidden");
+    if(btn.dataset.panel === "panel-tests") loadTeacherTests();
+    if(btn.dataset.panel === "panel-stats") loadStatsTestList();
+  });
+});
+function goToPanel(panelId){
+  $$("#teacher-nav .nav-item[data-panel]").forEach(b=>b.classList.toggle("active", b.dataset.panel===panelId));
+  $$(".panel").forEach(p=>p.classList.toggle("hidden", p.id!==panelId));
+}
+
+// ====================================================================
+// UČITEL — seznam testů
+// ====================================================================
+async function loadTeacherTests(){
+  showLoading(true);
+  try{
+    const snap = await getDocs(query(collection(db,"tests"), orderBy("createdAt","desc")));
+    allTests = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    const tbody = $("#teacher-tests-table tbody");
+    tbody.innerHTML = "";
+    for(const t of allTests){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(t.title)}</td>
+        <td>${t.questionCount||0}</td>
+        <td><span class="${t.active!==false?'badge-active':'badge-inactive'}">${t.active!==false?'Aktivní':'Skryto'}</span></td>
+        <td>${t.resultCount||0}</td>
+        <td style="text-align:right;white-space:nowrap;">
+          <button class="btn secondary small" data-edit="${t.id}">Upravit</button>
+          <button class="btn danger small" data-del="${t.id}">Smazat</button>
+        </td>`;
+      tbody.appendChild(tr);
+    }
+    tbody.querySelectorAll("[data-edit]").forEach(b=>{
+      b.addEventListener("click", ()=> editTest(b.dataset.edit));
+    });
+    tbody.querySelectorAll("[data-del]").forEach(b=>{
+      b.addEventListener("click", ()=> deleteTest(b.dataset.del));
+    });
+  }catch(e){
+    console.error(e);
+    toast("Nepodařilo se načíst testy.");
+  }finally{
+    showLoading(false);
+  }
+}
+
+$("#btn-new-from-list").addEventListener("click", ()=>{
+  resetEditor();
+  goToPanel("panel-new");
+});
+
+async function deleteTest(testId){
+  if(!confirm("Opravdu smazat tento test i se všemi otázkami?")) return;
+  showLoading(true);
+  try{
+    const qSnap = await getDocs(collection(db,"tests",testId,"questions"));
+    for(const d of qSnap.docs){ await deleteDoc(d.ref); }
+    await deleteDoc(doc(db,"tests",testId));
+    toast("Test byl smazán.");
+    loadTeacherTests();
+  }catch(e){
+    console.error(e);
+    toast("Smazání se nezdařilo.");
+  }finally{
+    showLoading(false);
+  }
+}
+
+// ====================================================================
+// UČITEL — editor testu (nový / úprava)
+// ====================================================================
+let editingTestId = null;
+let editorQuestions = []; // {id?, text, options:[a,b,c,d], correct}
+
+function resetEditor(){
+  editingTestId = null;
+  editorQuestions = [];
+  $("#editor-heading").textContent = "Nový test";
+  $("#edit-title").value = "";
+  $("#edit-desc").value = "";
+  $("#edit-active").checked = true;
+  renderQuestionsEditor();
+}
+
+async function editTest(testId){
+  showLoading(true);
+  try{
+    const tSnap = await getDoc(doc(db,"tests",testId));
+    const t = tSnap.data();
+    const qSnap = await getDocs(query(collection(db,"tests",testId,"questions"), orderBy("order","asc")));
+    editingTestId = testId;
+    editorQuestions = qSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    $("#editor-heading").textContent = "Upravit test";
+    $("#edit-title").value = t.title || "";
+    $("#edit-desc").value = t.description || "";
+    $("#edit-active").checked = t.active !== false;
+    renderQuestionsEditor();
+    goToPanel("panel-new");
+  }catch(e){
+    console.error(e);
+    toast("Nepodařilo se načíst test k úpravě.");
+  }finally{
+    showLoading(false);
+  }
+}
+
+function renderQuestionsEditor(){
+  const wrap = $("#questions-editor");
+  wrap.innerHTML = "";
+  const letters = ["A","B","C","D"];
+  editorQuestions.forEach((q, qi)=>{
+    const block = document.createElement("div");
+    block.className = "question-block";
+    let optsHtml = "";
+    for(let i=0;i<4;i++){
+      optsHtml += `
+        <div class="opt-edit-row">
+          <input type="radio" name="correct-${qi}" ${q.correct===i?'checked':''} data-correct="${qi}" value="${i}">
+          <div class="opt-letter-badge">${letters[i]}</div>
+          <input type="text" placeholder="Možnost ${letters[i]}" value="${escapeHtml(q.options[i]||'')}" data-opt="${qi}-${i}">
+        </div>`;
+    }
+    block.innerHTML = `
+      <div class="q-head">
+        <strong>Otázka ${qi+1}</strong>
+        <button class="btn danger small" data-remove-q="${qi}">Smazat otázku</button>
+      </div>
+      <div class="field" style="margin-bottom:10px;">
+        <input type="text" placeholder="Text otázky" value="${escapeHtml(q.text||'')}" data-qtext="${qi}">
+      </div>
+      ${optsHtml}
+    `;
+    wrap.appendChild(block);
+  });
+
+  wrap.querySelectorAll("[data-qtext]").forEach(inp=>{
+    inp.addEventListener("input", e=>{ editorQuestions[e.target.dataset.qtext].text = e.target.value; });
+  });
+  wrap.querySelectorAll("[data-opt]").forEach(inp=>{
+    inp.addEventListener("input", e=>{
+      const [qi,oi] = e.target.dataset.opt.split("-").map(Number);
+      editorQuestions[qi].options[oi] = e.target.value;
+    });
+  });
+  wrap.querySelectorAll("[data-correct]").forEach(inp=>{
+    inp.addEventListener("change", e=>{
+      editorQuestions[e.target.dataset.correct].correct = Number(e.target.value);
+    });
+  });
+  wrap.querySelectorAll("[data-remove-q]").forEach(btn=>{
+    btn.addEventListener("click", e=>{
+      editorQuestions.splice(Number(e.target.dataset.removeQ),1);
+      renderQuestionsEditor();
+    });
+  });
+}
+
+$("#btn-add-question").addEventListener("click", ()=>{
+  editorQuestions.push({ text:"", options:["","","",""], correct:0 });
+  renderQuestionsEditor();
+});
+
+$("#btn-cancel-edit").addEventListener("click", ()=>{
+  resetEditor();
+  goToPanel("panel-tests");
+});
+
+$("#btn-save-test").addEventListener("click", async ()=>{
+  const title = $("#edit-title").value.trim();
+  if(!title){ toast("Zadej název testu."); return; }
+  if(editorQuestions.length === 0){ toast("Přidej alespoň jednu otázku."); return; }
+  for(const q of editorQuestions){
+    if(!q.text.trim() || q.options.some(o=>!o.trim())){
+      toast("Vyplň text a všechny 4 možnosti u každé otázky.");
+      return;
+    }
+  }
+  showLoading(true);
+  try{
+    let testId = editingTestId;
+    const testData = {
+      title,
+      description: $("#edit-desc").value.trim(),
+      active: $("#edit-active").checked,
+      questionCount: editorQuestions.length
+    };
+    if(testId){
+      await updateDoc(doc(db,"tests",testId), testData);
+      // smaž staré otázky a zapiš nové (nejjednodušší konzistentní přístup)
+      const oldQ = await getDocs(collection(db,"tests",testId,"questions"));
+      for(const d of oldQ.docs){ await deleteDoc(d.ref); }
+    }else{
+      const ref = await addDoc(collection(db,"tests"), { ...testData, createdAt: serverTimestamp() });
+      testId = ref.id;
+    }
+    let order = 0;
+    for(const q of editorQuestions){
+      await addDoc(collection(db,"tests",testId,"questions"), {
+        text: q.text.trim(),
+        options: q.options.map(o=>o.trim()),
+        correct: q.correct,
+        order: order++
+      });
+    }
+    toast("Test byl uložen.");
+    resetEditor();
+    goToPanel("panel-tests");
+    loadTeacherTests();
+  }catch(e){
+    console.error(e);
+    toast("Uložení se nezdařilo. Zkontroluj přihlášení a Firestore pravidla.");
+  }finally{
+    showLoading(false);
+  }
+});
+
+// ====================================================================
+// UČITEL — statistiky
+// ====================================================================
+let statsChart1 = null, statsChart2 = null;
+
+async function loadStatsTestList(){
+  const sel = $("#stats-test-select");
+  sel.innerHTML = "";
+  allTests.forEach(t=>{
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = t.title;
+    sel.appendChild(opt);
+  });
+  if(allTests.length){
+    await loadStatsForTest(allTests[0].id);
+  }else{
+    $("#stats-content").innerHTML = `<p style="color:var(--text-secondary);">Zatím nemáš žádné testy.</p>`;
+  }
+}
+
+$("#stats-test-select").addEventListener("change", e=> loadStatsForTest(e.target.value));
+
+async function loadStatsForTest(testId){
+  showLoading(true);
+  try{
+    const resSnap = await getDocs(query(collection(db,"results")));
+    const results = resSnap.docs.map(d=>d.data()).filter(r=>r.testId===testId);
+
+    const content = $("#stats-content");
+    if(results.length === 0){
+      content.innerHTML = `<p style="color:var(--text-secondary);margin-top:16px;">Zatím žádné pokusy o tento test.</p>`;
+      return;
+    }
+
+    const avgPercent = Math.round(results.reduce((s,r)=>s+(r.percentage||0),0)/results.length);
+    const best = Math.max(...results.map(r=>r.percentage||0));
+    const worst = Math.min(...results.map(r=>r.percentage||0));
+
+    content.innerHTML = `
+      <div class="stat-grid">
+        <div class="stat-box"><div class="num">${results.length}</div><div class="lbl">Počet pokusů</div></div>
+        <div class="stat-box"><div class="num">${avgPercent}%</div><div class="lbl">Průměrná úspěšnost</div></div>
+        <div class="stat-box"><div class="num">${best}%</div><div class="lbl">Nejlepší výsledek</div></div>
+        <div class="stat-box"><div class="num">${worst}%</div><div class="lbl">Nejhorší výsledek</div></div>
+      </div>
+      <div class="card"><canvas id="chart-scores" height="90"></canvas></div>
+      <div class="card"><canvas id="chart-questions" height="90"></canvas></div>
+      <h2 style="font-size:15px;margin:20px 0 10px;">Jednotlivé pokusy</h2>
+      <table class="data-table">
+        <thead><tr><th>Žák</th><th>Skóre</th><th>Úspěšnost</th></tr></thead>
+        <tbody>
+          ${results.map(r=>`<tr><td>${escapeHtml(r.studentName||'—')}</td><td>${r.score}/${r.total}</td><td>${r.percentage}%</td></tr>`).join("")}
+        </tbody>
+      </table>
+    `;
+
+    // Graf: rozložení úspěšnosti pokusů
+    if(statsChart1) statsChart1.destroy();
+    const ctx1 = $("#chart-scores").getContext("2d");
+    statsChart1 = new Chart(ctx1, {
+      type: "bar",
+      data: {
+        labels: results.map((r,i)=>r.studentName || `Pokus ${i+1}`),
+        datasets: [{ label:"Úspěšnost (%)", data: results.map(r=>r.percentage), backgroundColor:"#0078D4" }]
+      },
+      options: { responsive:true, scales:{ y:{ beginAtZero:true, max:100 } }, plugins:{ legend:{display:false}, title:{display:true,text:'Úspěšnost jednotlivých pokusů'} } }
+    });
+
+    // Graf: úspěšnost po otázkách
+    const qStats = {};
+    results.forEach(r=>{
+      (r.answers||[]).forEach((a,idx)=>{
+        if(!qStats[idx]) qStats[idx] = { correct:0, total:0, text:a.question };
+        qStats[idx].total++;
+        if(a.isCorrect) qStats[idx].correct++;
+      });
+    });
+    const qLabels = Object.keys(qStats).map(k=>`Ot. ${Number(k)+1}`);
+    const qData = Object.values(qStats).map(q=>Math.round((q.correct/q.total)*100));
+    if(statsChart2) statsChart2.destroy();
+    const ctx2 = $("#chart-questions").getContext("2d");
+    statsChart2 = new Chart(ctx2, {
+      type: "bar",
+      data: { labels: qLabels, datasets:[{ label:"Úspěšnost otázky (%)", data:qData, backgroundColor:"#107C10" }] },
+      options: { responsive:true, scales:{ y:{ beginAtZero:true, max:100 } }, plugins:{ legend:{display:false}, title:{display:true,text:'Úspěšnost podle otázky'} } }
+    });
+
+  }catch(e){
+    console.error(e);
+    toast("Statistiky se nepodařilo načíst.");
+  }finally{
+    showLoading(false);
+  }
+}
+
+// ====================================================================
+// START
+// ====================================================================
+loadMenuTests();
+</script>
+</body>
+</html>
