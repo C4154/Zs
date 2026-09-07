@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Zkouškovna</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --ink:#161B2C;
+  --ink-soft:#2A3350;
+  --paper:#F6F5F1;
+  --surface:#FFFFFF;
+  --surface-alt:#F0F1EC;
+  --border:#E4E3DC;
+  --muted:#6B7080;
+  --primary:#1F9D74;
+  --primary-dark:#167A5A;
+  --primary-soft:#E3F5EE;
+  --amber:#F2A93C;
+  --amber-soft:#FCF0DA;
+  --coral:#E4574F;
+  --coral-soft:#FBE7E5;
+  --shadow-sm:0 1px 2px rgba(22,27,44,.06), 0 1px 1px rgba(22,27,44,.04);
+  --shadow-md:0 8px 24px rgba(22,27,44,.10);
+  --shadow-lg:0 20px 48px rgba(22,27,44,.18);
+  --radius-sm:10px;
+  --radius-md:16px;
+  --radius-lg:26px;
+  --font-display:'Sora',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font-body);
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+h1,h2,h3,h4{font-family:var(--font-display);margin:0;color:var(--ink);}
+p{margin:0;}
+button{font-family:var(--font-body);cursor:pointer;}
+input,textarea,select{font-family:var(--font-body);}
+a{color:inherit;}
+.hidden{display:none !important;}
+::selection{background:var(--primary-soft);}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:none;border-radius:14px;padding:12px 20px;font-weight:600;font-size:15px;
+  transition:transform .12s ease, box-shadow .12s ease, background .15s ease, opacity .15s ease;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--border);}
+.btn-ghost:hover{background:var(--surface-alt);}
+.btn-danger{background:var(--coral-soft);color:var(--coral);}
+.btn-danger:hover{background:#f7d3d1;}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:11px;}
+.btn-icon{padding:10px;border-radius:12px;background:var(--surface-alt);color:var(--ink);}
+.btn-icon:hover{background:var(--border);}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+.btn-block{width:100%;}
+
+/* ---------- Inputs ---------- */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.field label{font-size:13px;font-weight:600;color:var(--ink-soft);}
+.field .hint{font-size:12px;color:var(--muted);font-weight:400;}
+.input, textarea.input, select.input{
+  border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:15px;
+  background:var(--surface);color:var(--ink);outline:none;width:100%;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.input:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft);}
+textarea.input{resize:vertical;min-height:70px;}
+.checkbox-row{display:flex;align-items:center;gap:10px;padding:10px 0;}
+.checkbox-row input{width:19px;height:19px;accent-color:var(--primary);}
+.checkbox-row label{font-size:14px;font-weight:500;color:var(--ink);}
+
+/* ---------- Layout: Teacher ---------- */
+.app-shell{min-height:100vh;display:flex;flex-direction:column;}
+.topbar{
+  background:var(--ink);color:#fff;padding:16px 28px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:40;box-shadow:var(--shadow-md);
+}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:19px;}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:17px;}
+.topbar-actions{display:flex;gap:10px;align-items:center;}
+.topbar .btn-ghost{border-color:rgba(255,255,255,.22);color:#fff;}
+.topbar .btn-ghost:hover{background:rgba(255,255,255,.1);}
+.container{max-width:1080px;margin:0 auto;padding:28px 20px 80px;width:100%;}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;}
+.page-head h1{font-size:26px;}
+.page-head .sub{color:var(--muted);font-size:14px;margin-top:4px;}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px;}
+.toolbar .input{max-width:260px;}
+.pill-select{display:flex;gap:6px;background:var(--surface-alt);padding:4px;border-radius:12px;}
+.pill-select button{border:none;background:transparent;padding:7px 13px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);}
+.pill-select button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm);}
+
+/* ---------- Cards ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;}
+.test-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.test-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-sm);transition:box-shadow .15s ease, transform .15s ease;}
+.test-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
+.test-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.test-card h3{font-size:17px;line-height:1.3;}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:99px;text-transform:none;}
+.badge-live{background:var(--primary-soft);color:var(--primary-dark);}
+.badge-paused{background:var(--surface-alt);color:var(--muted);}
+.test-meta{display:flex;gap:14px;color:var(--muted);font-size:13px;flex-wrap:wrap;}
+.test-meta span{display:flex;align-items:center;gap:5px;}
+.test-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:6px;border-top:1px solid var(--border);}
+.empty-state{text-align:center;padding:70px 20px;color:var(--muted);}
+.empty-state .emoji{font-size:44px;margin-bottom:14px;}
+.empty-state h3{color:var(--ink);margin-bottom:8px;}
+
+/* ---------- Question editor ---------- */
+.q-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-md);padding:18px;margin-bottom:14px;}
+.q-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;}
+.q-num{width:28px;height:28px;border-radius:9px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+.q-head-left{display:flex;align-items:center;gap:10px;}
+.q-type-badge{font-size:11.5px;font-weight:700;color:var(--primary-dark);background:var(--primary-soft);padding:3px 9px;border-radius:8px;}
+.q-actions{display:flex;gap:6px;}
+.opt-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.opt-row input.input{flex:1;}
+.opt-row .opt-correct-toggle{width:26px;height:26px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:transparent;}
+.opt-row .opt-correct-toggle.correct{background:var(--primary);border-color:var(--primary);color:#fff;}
+.short-ans-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-alt);padding:6px 10px;border-radius:9px;font-size:13px;font-weight:500;}
+.chip button{background:none;border:none;color:var(--muted);font-size:14px;line-height:1;padding:0;}
+.add-q-menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:8px;}
+.add-q-menu button{background:var(--surface);border:1.5px dashed var(--border);border-radius:14px;padding:16px 10px;font-weight:600;font-size:13.5px;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:6px;}
+.add-q-menu button:hover{border-color:var(--primary);color:var(--primary-dark);background:var(--primary-soft);}
+.add-q-menu .ic{font-size:20px;}
+.order-items{display:flex;flex-direction:column;gap:8px;}
+.order-item-edit{display:flex;align-items:center;gap:8px;}
+.order-item-edit .drag-handle{color:var(--muted);cursor:grab;font-size:16px;}
+
+/* ---------- Modal / Toast ---------- */
+.overlay{position:fixed;inset:0;background:rgba(22,27,44,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.modal{background:var(--surface);border-radius:var(--radius-md);max-width:520px;width:100%;padding:26px;box-shadow:var(--shadow-lg);max-height:88vh;overflow-y:auto;}
+.modal h2{font-size:19px;margin-bottom:14px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+.toast-wrap{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;}
+.toast{background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:var(--shadow-md);animation:toastin .18s ease;}
+.toast.err{background:var(--coral);}
+.toast.ok{background:var(--primary-dark);}
+@keyframes toastin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---------- Teacher gate ---------- */
+.gate-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:
+  radial-gradient(circle at 20% 15%, #1E2540 0%, var(--ink) 45%, #0F1322 100%);}
+.gate-card{background:var(--surface);border-radius:var(--radius-lg);padding:36px 32px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);text-align:center;}
+.gate-card .brand-mark{margin:0 auto 16px;width:52px;height:52px;font-size:24px;border-radius:16px;}
+.gate-card h1{font-size:22px;margin-bottom:6px;}
+.gate-card p.sub{color:var(--muted);font-size:14px;margin-bottom:22px;}
+.pass-dots{display:flex;gap:10px;justify-content:center;margin:18px 0;}
+.pass-dots .dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .1s ease;}
+.pass-dots .dot.filled{background:var(--primary);border-color:var(--primary);}
+.pass-dots .dot.err{background:var(--coral);border-color:var(--coral);}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px;}
+.keypad button{background:var(--surface-alt);border:none;border-radius:14px;padding:16px 0;font-size:19px;font-weight:700;color:var(--ink);}
+.keypad button:active{background:var(--border);}
+
+/* ---------- Student phone shell ---------- */
+.phone-outer{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#EFEDE4,#E4E2D7);padding:24px 12px;}
+.phone{
+  width:100%;max-width:430px;background:var(--surface);border-radius:36px;
+  box-shadow:var(--shadow-lg), 0 0 0 10px #0F1322, 0 0 0 12px rgba(15,19,34,.12);
+  min-height:780px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;position:relative;
+}
+.phone-status{height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.phone-status .notch{width:110px;height:20px;background:#0F1322;border-radius:0 0 16px 16px;}
+.phone-appbar{padding:14px 20px 10px;flex-shrink:0;}
+.phone-appbar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.phone-appbar-top .q-progress-text{font-size:13px;font-weight:700;color:var(--muted);}
+.timer-pill{display:flex;align-items:center;gap:6px;background:var(--surface-alt);padding:6px 12px;border-radius:99px;font-weight:700;font-size:13px;color:var(--ink-soft);}
+.timer-pill.low{background:var(--coral-soft);color:var(--coral);}
+.progress-track{height:8px;background:var(--surface-alt);border-radius:99px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--primary);border-radius:99px;transition:width .25s ease;}
+.phone-body{flex:1;overflow-y:auto;padding:8px 20px 20px;}
+.phone-footer{padding:14px 20px 22px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:10px;}
+.phone-footer .btn{flex:1;}
+
+.qview{animation:qin .22s ease;}
+@keyframes qin{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+.qview h2{font-size:19px;line-height:1.35;margin-bottom:18px;}
+.qview .points-tag{font-size:12px;font-weight:700;color:var(--muted);background:var(--surface-alt);display:inline-block;padding:3px 9px;border-radius:8px;margin-bottom:10px;}
+.choice-btn{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);
+  border:2px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;font-size:15.5px;font-weight:500;color:var(--ink);
+  transition:all .12s ease;
+}
+.choice-btn:active{transform:scale(.985);}
+.choice-btn .letter{width:28px;height:28px;border-radius:9px;background:var(--surface-alt);color:var(--muted);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+.choice-btn.selected{border-color:var(--primary);background:var(--primary-soft);}
+.choice-btn.selected .letter{background:var(--primary);color:#fff;}
+.order-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;}
+.order-list li{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:10px;font-weight:500;font-size:15px;}
+.order-list li .oi-num{width:24px;height:24px;border-radius:7px;background:var(--ink);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.order-list li .oi-move{display:flex;flex-direction:column;gap:2px;margin-left:auto;}
+.order-list li .oi-move button{background:var(--surface-alt);border:none;width:26px;height:22px;border-radius:6px;font-size:11px;}
+.tf-row{display:flex;gap:10px;}
+.tf-row .choice-btn{justify-content:center;}
+
+.landing-wrap{display:flex;flex-direction:column;height:100%;padding:26px 22px;}
+.landing-wrap .test-icon{width:64px;height:64px;border-radius:20px;background:var(--primary-soft);color:var(--primary-dark);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:18px;}
+.landing-wrap h1{font-size:23px;line-height:1.3;margin-bottom:8px;}
+.landing-wrap .desc{color:var(--muted);font-size:14.5px;line-height:1.5;margin-bottom:18px;}
+.landing-facts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;}
+.fact-pill{background:var(--surface-alt);padding:8px 13px;border-radius:12px;font-size:12.5px;font-weight:600;color:var(--ink-soft);display:flex;align-items:center;gap:6px;}
+.landing-wrap .spacer{flex:1;}
+.result-hero{text-align:center;padding:10px 0 22px;}
+.result-score-ring{width:140px;height:140px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;flex-direction:column;background:conic-gradient(var(--primary) calc(var(--pct)*1%), var(--surface-alt) 0);position:relative;}
+.result-score-ring::before{content:'';position:absolute;inset:10px;background:var(--surface);border-radius:50%;}
+.result-score-ring .rs-inner{position:relative;z-index:1;text-align:center;}
+.result-score-ring .rs-pct{font-family:var(--font-display);font-size:26px;font-weight:800;}
+.result-score-ring .rs-frac{font-size:12px;color:var(--muted);font-weight:600;}
+.review-item{border:1.5px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:10px;}
+.review-item .ri-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;}
+.review-item .ri-q{font-weight:600;font-size:14px;flex:1;}
+.review-item .ri-mark{font-size:16px;flex-shrink:0;}
+.review-item .ri-line{font-size:13px;color:var(--muted);margin-top:3px;}
+.review-item .ri-line b{color:var(--ink);font-weight:600;}
+.center-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:30px;gap:10px;}
+.center-msg .emoji{font-size:46px;}
+.center-msg h2{font-size:19px;}
+.center-msg p{color:var(--muted);font-size:14px;}
+.spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--surface-alt);border-top-color:var(--primary);animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Results page ---------- */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px;}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;}
+.stat-box .stat-label{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:6px;}
+.stat-box .stat-val{font-family:var(--font-display);font-size:26px;font-weight:800;}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+@media(max-width:760px){.chart-row{grid-template-columns:1fr;}}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;}
+.chart-box h3{font-size:14.5px;margin-bottom:14px;}
+table.results-table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border);}
+table.results-table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);padding:12px 14px;background:var(--surface-alt);font-weight:700;}
+table.results-table td{padding:12px 14px;border-top:1px solid var(--border);font-size:14px;}
+table.results-table tr:hover td{background:var(--surface-alt);}
+.flag{color:var(--coral);font-weight:700;}
+.link-box{display:flex;gap:8px;align-items:center;background:var(--surface-alt);padding:10px 12px;border-radius:12px;margin-bottom:18px;}
+.link-box input{flex:1;background:transparent;border:none;font-size:13.5px;color:var(--ink-soft);outline:none;font-family:monospace;}
+
+/* ---------- Print test ---------- */
+@media print{
+  @page{size:A4;margin:14mm;}
+  body{background:#fff!important;color:#000!important;font-family:Arial,Helvetica,sans-serif!important;}
+  body *{visibility:hidden!important;}
+  #printTestSheet,#printTestSheet *{visibility:visible!important;}
+  #printTestSheet{display:block!important;position:absolute;left:0;top:0;width:100%;font-size:11pt;line-height:1.35;}
+  #printTestSheet h1{font-size:17pt;margin:0 0 10mm;font-family:Arial,Helvetica,sans-serif;}
+  #printTestSheet .print-header{display:flex;gap:12mm;margin-bottom:9mm;}
+  #printTestSheet .print-field{flex:1;border-bottom:1px solid #000;padding-bottom:3px;min-height:18px;}
+  #printTestSheet .print-q{break-inside:avoid;margin:0 0 7mm;}
+  #printTestSheet .print-q-title{font-weight:700;margin-bottom:3mm;}
+  #printTestSheet .print-opt{margin:1.5mm 0 0 5mm;}
+  #printTestSheet .print-line{border-bottom:1px solid #777;height:8mm;margin-top:2mm;}
+  #printTestSheet .print-order{margin:1mm 0 1mm 5mm;}
+}
+#printTestSheet{display:none;}
+@media(max-width:600px){
+  .phone-outer{padding:0;}
+  .phone{border-radius:0;box-shadow:none;min-height:100vh;max-height:100vh;width:100%;}
+  .container{padding:20px 14px 70px;}
+  .topbar{padding:14px 16px;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* =========================================================================
+   ZKOUŠKOVNA — testovací platforma pro učitele
+   -------------------------------------------------------------------------
+   NASTAVENÍ PŘED POUŽITÍM:
+   1) Vyplňte firebaseConfig níže (vlastní Firebase projekt, Firestore).
+   2) Ve Firestore vytvořte kolekci "tests" (podkolekce "results" vznikne automaticky).
+   3) Doporučená bezpečnostní pravidla najdete v komentáři níže u firebaseConfig.
+   4) Heslo učitele: 7317 (lze změnit přepočítáním TEACHER_PASSWORD_HASH).
+   ========================================================================= */
+
+// ---- FIREBASE KONFIGURACE — SEM VLOŽTE SVOJI KONFIGURACI ----
+const firebaseConfig = {
+  apiKey: "AIzaSyCllGBVpdxMX4D-_jUfKLgvYvxZ708HpDw",
+  authDomain: "zsbt-1192c.firebaseapp.com",
+  projectId: "zsbt-1192c",
+  storageBucket: "zsbt-1192c.firebasestorage.app",
+  messagingSenderId: "62680870452",
+  appId: "1:62680870452:web:ecd43e0507f57f97622461"
+};
+/* Doporučená Firestore pravidla (Firestore > Rules):
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /tests/{testId} {
+      allow read: if true;
+      allow write: if true; // pro jednoduchost otevřené, případně zabezpečte dle potřeby
+      match /results/{resultId} {
+        allow create: if true;
+        allow read, update, delete: if true;
+      }
+    }
+  }
+}
+*/
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ---- Heslo učitele (SHA-256 hash "7317") ----
+const TEACHER_PASSWORD_HASH = "93edea54a28f14ad724ae21019f7a1ff970760d415feaab92f7ed202ddec675f";
+
+// ---------------------------------------------------------------------
+// Utility
+// ---------------------------------------------------------------------
+const $app = document.getElementById('app');
+const $toastWrap = document.getElementById('toastWrap');
+
+function uid(len){
+  len = len || 20;
+  const chars='abcdefghijklmnopqrstuvwxyz0123456789';
+  let s='';
+  for(let i=0;i<len;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function escapeHtml(str){
+  if(str==null) return '';
+  return String(str).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    const tmp=a[i]; a[i]=a[j]; a[j]=tmp;
+  }
+  return a;
+}
+function toast(msg, type){
+  const el=document.createElement('div');
+  el.className='toast'+(type?' '+type:'');
+  el.textContent=msg;
+  $toastWrap.appendChild(el);
+  setTimeout(function(){
+    el.style.opacity='0'; el.style.transition='opacity .25s ease';
+    setTimeout(function(){ el.remove(); },250);
+  },2400);
+}
+function sha256Hex(str){
+  const enc=new TextEncoder().encode(str);
+  return crypto.subtle.digest('SHA-256', enc).then(function(buf){
+    return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+  });
+}
+function fmtDate(ts){
+  try{
+    const d = ts && ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleString('cs-CZ',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  }catch(e){ return ''; }
+}
+function fmtSecs(s){
+  s=Math.max(0,Math.floor(s));
+  const m=Math.floor(s/60), r=s%60;
+  return m+':'+String(r).padStart(2,'0');
+}
+function csvEscape(v){
+  const s=String(v==null?'':v);
+  if(/[",\n;]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function downloadCSV(filename, rows){
+  const content = rows.map(function(r){ return r.map(csvEscape).join(';'); }).join('\r\n');
+  const blob = new Blob(['\uFEFF'+content], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+}
+function qs(sel,root){ return (root||document).querySelector(sel); }
+function qsa(sel,root){ return Array.from((root||document).querySelectorAll(sel)); }
+
+const QUESTION_TYPES = {
+  single:   {label:'Jedna správná odpověď', icon:'◉'},
+  multi:    {label:'Více správných odpovědí', icon:'☑'},
+  truefalse:{label:'Ano / Ne', icon:'✓'},
+  short:    {label:'Krátká textová odpověď', icon:'✎'},
+  ordering: {label:'Seřazení pojmů', icon:'↕'}
+};
+
+function newQuestion(type){
+  const base = {id: uid(8), type: type, text:'', points:1};
+  if(type==='single') return Object.assign(base, {options:['',''], correctIndex:0});
+  if(type==='multi') return Object.assign(base, {options:['',''], correctIndexes:[0]});
+  if(type==='truefalse') return Object.assign(base, {correct:true});
+  if(type==='short') return Object.assign(base, {acceptedAnswers:['']});
+  if(type==='ordering') return Object.assign(base, {items:['','']});
+  return base;
+}
+
+function emptySettings(){
+  return {
+    shuffleQuestions:false,
+    shuffleAnswers:false,
+    showResultsAfter:true,
+    allowRetake:false,
+    requireClass:true,
+    fullscreenRequired:false
+  };
+}
+
+// ---------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------
+const urlParams = new URLSearchParams(location.search);
+const studentTestId = urlParams.get('test');
+
+if(studentTestId){
+  runStudentApp(studentTestId);
+} else {
+  runTeacherApp();
+}
+
+/* =========================================================================
+   STUDENT APP
+   ========================================================================= */
+function runStudentApp(testId){
+  const state = {
+    phase:'loading', // loading | notfound | paused | already | error | landing | taking | submitting | done
+    test:null,
+    name:'',
+    className:'',
+    qIndex:0,
+    answers:{}, // questionId -> given value
+    order:[], // question objects, possibly shuffled, with display-index maps
+    tabSwitches:0,
+    startedAt:null,
+    timeLeft:null,
+    timerHandle:null,
+    result:null
+  };
+
+  loadTest();
+
+  function loadTest(){
+    db.collection('tests').doc(testId).get().then(function(doc){
+      if(!doc.exists){ state.phase='notfound'; render(); return; }
+      const test = Object.assign({id:doc.id}, doc.data());
+      state.test = test;
+      if(test.active===false){ state.phase='paused'; render(); return; }
+      if(!test.settings.allowRetake){
+        const done = localStorage.getItem('zk_done_'+testId);
+        if(done){ state.phase='already'; render(); return; }
+      }
+      state.phase='landing';
+      render();
+    }).catch(function(e){
+      console.error(e);
+      state.phase='error';
+      render();
+    });
+  }
+
+  function buildOrder(){
+    let qs2 = state.test.questions.slice();
+    if(state.test.settings.shuffleQuestions) qs2 = shuffle(qs2);
+    state.order = qs2.map(function(q){
+      const copy = Object.assign({}, q);
+      if(q.type==='single'||q.type==='multi'){
+        copy._displayIdx = state.test.settings.shuffleAnswers ? shuffle(q.options.map(function(_,i){return i;})) : q.options.map(function(_,i){return i;});
+      }
+      if(q.type==='ordering'){
+        copy._displayOrder = shuffle(q.items.map(function(_,i){return i;}));
+      }
+      return copy;
+    });
+  }
+
+  function startTest(){
+    if(!state.name.trim()){ toast('Zadej prosím své jméno','err'); return; }
+    if(state.test.settings.requireClass && !state.className.trim()){ toast('Zadej prosím svou třídu','err'); return; }
+    buildOrder();
+    state.phase='taking';
+    state.qIndex=0;
+    state.answers={};
+    state.tabSwitches=0;
+    state.startedAt=Date.now();
+    if(state.test.timeLimitMinutes>0){
+      state.timeLeft = state.test.timeLimitMinutes*60;
+      state.timerHandle = setInterval(function(){
+        state.timeLeft--;
+        if(state.timeLeft<=0){
+          clearInterval(state.timerHandle);
+          submitTest(true);
+          return;
+        }
+        updateTimerOnly();
+      },1000);
+    }
+    document.addEventListener('visibilitychange', onVis);
+    render();
+  }
+
+  function onVis(){
+    if(document.hidden && state.phase==='taking'){
+      state.tabSwitches++;
+    }
+  }
+
+  function updateTimerOnly(){
+    const el = qs('#timerPill');
+    if(!el) return;
+    el.textContent = '⏱ '+fmtSecs(state.timeLeft);
+    if(state.timeLeft<60) el.classList.add('low');
+  }
+
+  function gradeQuestion(q, given){
+    if(q.type==='single'){
+      const correct = given===q.correctIndex;
+      return {correct:correct, givenText: given!=null? q.options[given] : '(nezodpovězeno)', correctText:q.options[q.correctIndex]};
+    }
+    if(q.type==='multi'){
+      const g = (given||[]).slice().sort();
+      const c = q.correctIndexes.slice().sort();
+      const correct = g.length===c.length && g.every(function(v,i){return v===c[i];}) && g.length>0;
+      const gt = g.length? g.map(function(i){return q.options[i];}).join(', ') : '(nezodpovězeno)';
+      const ct = c.map(function(i){return q.options[i];}).join(', ');
+      return {correct:correct, givenText:gt, correctText:ct};
+    }
+    if(q.type==='truefalse'){
+      const correct = given===q.correct;
+      return {correct:correct, givenText: given==null?'(nezodpovězeno)':(given?'Ano':'Ne'), correctText: q.correct?'Ano':'Ne'};
+    }
+    if(q.type==='short'){
+      const norm = function(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); };
+      const gv = given || '';
+      const correct = q.acceptedAnswers.some(function(a){ return norm(a)===norm(gv); }) && norm(gv)!=='';
+      return {correct:correct, givenText: gv.trim()? gv.trim() : '(nezodpovězeno)', correctText: q.acceptedAnswers.filter(Boolean).join(' / ')};
+    }
+    if(q.type==='ordering'){
+      const g = given;
+      let correct=false;
+      if(g && g.length===q.items.length){
+        correct = g.every(function(v,i){ return v===i; });
+      }
+      const gt = g? g.map(function(i){return q.items[i];}).join(' → ') : '(nezodpovězeno)';
+      const ct = q.items.join(' → ');
+      return {correct:correct, givenText:gt, correctText:ct};
+    }
+    return {correct:false, givenText:'', correctText:''};
+  }
+
+  function submitTest(auto){
+    if(state.timerHandle) clearInterval(state.timerHandle);
+    document.removeEventListener('visibilitychange', onVis);
+    state.phase='submitting';
+    render();
+
+    const test = state.test;
+    let score=0, maxScore=0;
+    const answerDetails=[];
+    test.questions.forEach(function(q){
+      maxScore += (q.points||1);
+      const given = state.answers[q.id];
+      const g = gradeQuestion(q, given);
+      if(g.correct) score += (q.points||1);
+      answerDetails.push({
+        questionId:q.id, text:q.text, type:q.type, points:q.points||1,
+        correct:g.correct, givenText:g.givenText, correctText:g.correctText
+      });
+    });
+
+    const resultDoc = {
+      studentName: state.name.trim(),
+      className: state.className.trim(),
+      score:score, maxScore:maxScore,
+      percent: maxScore>0 ? Math.round((score/maxScore)*100) : 0,
+      tabSwitches: state.tabSwitches,
+      auto: !!auto,
+      startedAt: state.startedAt,
+      finishedAt: Date.now(),
+      durationSec: Math.round((Date.now()-state.startedAt)/1000),
+      answers: answerDetails
+    };
+
+    db.collection('tests').doc(testId).collection('results').add(
+      Object.assign({}, resultDoc, {createdAt: firebase.firestore.FieldValue.serverTimestamp()})
+    ).then(function(){
+      localStorage.setItem('zk_done_'+testId, '1');
+      state.result = resultDoc;
+      state.phase='done';
+      render();
+    }).catch(function(e){
+      console.error(e);
+      toast('Odeslání se nezdařilo, zkus to prosím znovu','err');
+      state.phase='taking';
+      render();
+    });
+  }
+
+  function goNext(){
+    if(state.qIndex < state.order.length-1){ state.qIndex++; render(); }
+    else confirmSubmit();
+  }
+  function goPrev(){
+    if(state.qIndex>0){ state.qIndex--; render(); }
+  }
+  function confirmSubmit(){
+    const unanswered = state.order.filter(function(q){
+      const a = state.answers[q.id];
+      if(q.type==='multi') return !a || a.length===0;
+      if(q.type==='ordering') return !a;
+      return a===undefined || a===null || a==='';
+    }).length;
+    showModal(
+      '<h2>Odeslat test?</h2>' +
+      '<p style="color:var(--muted);font-size:14px;line-height:1.5;">' +
+      (unanswered>0 ? 'Ještě máš <b>'+unanswered+'</b> nezodpovězených otázek. ' : '') +
+      'Po odeslání už nepůjde test upravit.</p>' +
+      '<div class="modal-actions">' +
+      '<button class="btn btn-ghost" data-close>Zpět k testu</button>' +
+      '<button class="btn btn-primary" id="doSubmit">Odeslat test</button>' +
+      '</div>'
+    );
+    qs('#doSubmit').onclick=function(){ closeModal(); submitTest(false); };
+  }
+
+  function render(){
+    let inner='';
+    if(state.phase==='loading'){
+      inner = '<div class="center-msg"><div class="spinner"></div><p>Načítám test…</p></div>';
+    } else if(state.phase==='notfound'){
+      inner = '<div class="center-msg"><div class="emoji">🔍</div><h2>Test nenalezen</h2><p>Zkontroluj prosím odkaz od svého učitele.</p></div>';
+    } else if(state.phase==='paused'){
+      inner = '<div class="center-msg"><div class="emoji">⏸️</div><h2>Test není aktivní</h2><p>Tento test momentálně není spuštěný. Zeptej se svého učitele.</p></div>';
+    } else if(state.phase==='already'){
+      inner = '<div class="center-msg"><div class="emoji">✅</div><h2>Test už jsi absolvoval/a</h2><p>Tento test lze vyplnit pouze jednou.</p></div>';
+    } else if(state.phase==='error'){
+      inner = '<div class="center-msg"><div class="emoji">⚠️</div><h2>Něco se pokazilo</h2><p>Zkus prosím obnovit stránku.</p></div>';
+    } else if(state.phase==='landing'){
+      inner = renderLanding();
+    } else if(state.phase==='taking'){
+      inner = renderTaking();
+    } else if(state.phase==='submitting'){
+      inner = '<div class="center-msg"><div class="spinner"></div><p>Odesílám odpovědi…</p></div>';
+    } else if(state.phase==='done'){
+      inner = renderDone();
+    }
+
+    $app.innerHTML =
+      '<div class="phone-outer"><div class="phone">' +
+      '<div class="phone-status"><div class="notch"></div></div>' +
+      inner +
+      '</div></div>';
+    attachPhaseHandlers();
+  }
+
+  function renderLanding(){
+    const t = state.test;
+    let html = '<div class="landing-wrap">';
+    html += '<div class="test-icon">📝</div>';
+    html += '<h1>'+escapeHtml(t.title)+'</h1>';
+    if(t.description) html += '<div class="desc">'+escapeHtml(t.description)+'</div>';
+    html += '<div class="landing-facts">';
+    html += '<div class="fact-pill">❓ '+t.questions.length+' otázek</div>';
+    html += t.timeLimitMinutes>0 ? '<div class="fact-pill">⏱ '+t.timeLimitMinutes+' min</div>' : '<div class="fact-pill">⏱ bez limitu</div>';
+    if(!t.settings.allowRetake) html += '<div class="fact-pill">🔒 jeden pokus</div>';
+    html += '</div>';
+    html += '<div class="field"><label>Tvé jméno a příjmení</label><input class="input" id="inName" placeholder="např. Jana Nováková" value="'+escapeHtml(state.name)+'"></div>';
+    if(t.settings.requireClass){
+      html += '<div class="field"><label>Tvoje třída</label><input class="input" id="inClass" placeholder="např. 7.A" value="'+escapeHtml(state.className)+'"></div>';
+    }
+    html += '<div class="spacer"></div>';
+    if(t.settings.fullscreenRequired) html += '<p class="hint" style="margin-bottom:10px;color:var(--muted);font-size:12.5px;">Test se spustí na celou obrazovku.</p>';
+    html += '<button class="btn btn-primary btn-block" id="startBtn">Začít test</button>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderTaking(){
+    const q = state.order[state.qIndex];
+    const total = state.order.length;
+    const pct = Math.round((state.qIndex/total)*100);
+    let body='';
+    const given = state.answers[q.id];
+
+    if(q.type==='single'){
+      body = q._displayIdx.map(function(origIdx,pos){
+        const letter = String.fromCharCode(65+pos);
+        const sel = given===origIdx;
+        return '<button class="choice-btn '+(sel?'selected':'')+'" data-single="'+origIdx+'"><span class="letter">'+letter+'</span>'+escapeHtml(q.options[origIdx])+'</button>';
+      }).join('');
+    } else if(q.type==='multi'){
+      const arr = given||[];
+      body = q._displayIdx.map(function(origIdx,pos){
+        const letter = String.fromCharCode(65+pos);
+        const sel = arr.indexOf(origIdx)>=0;
+        return '<button class="choice-btn '+(sel?'selected':'')+'" data-multi="'+origIdx+'"><span class="letter">'+(sel?'✓':letter)+'</span>'+escapeHtml(q.options[origIdx])+'</button>';
+      }).join('');
+    } else if(q.type==='truefalse'){
+      body = '<div class="tf-row">' +
+        '<button class="choice-btn '+(given===true?'selected':'')+'" data-tf="true" style="flex:1;"><span class="letter">✓</span>Ano</button>' +
+        '<button class="choice-btn '+(given===false?'selected':'')+'" data-tf="false" style="flex:1;"><span class="letter">✕</span>Ne</button>' +
+        '</div>';
+    } else if(q.type==='short'){
+      body = '<div class="field"><input class="input" id="shortAns" placeholder="Napiš odpověď…" value="'+escapeHtml(given||'')+'"></div>';
+    } else if(q.type==='ordering'){
+      const order = given || q._displayOrder.slice();
+      if(!given) state.answers[q.id] = order;
+      body = '<ul class="order-list" id="orderList">' + order.map(function(origIdx,pos){
+        return '<li data-orig="'+origIdx+'">' +
+          '<span class="oi-num">'+(pos+1)+'</span>' +
+          '<span>'+escapeHtml(q.items[origIdx])+'</span>' +
+          '<span class="oi-move">' +
+          '<button data-move="up" data-pos="'+pos+'" '+(pos===0?'disabled':'')+'>▲</button>' +
+          '<button data-move="down" data-pos="'+pos+'" '+(pos===order.length-1?'disabled':'')+'>▼</button>' +
+          '</span></li>';
+      }).join('') + '</ul><p class="hint" style="margin-top:10px;">Seřaď položky pomocí šipek od první do poslední.</p>';
+    }
+
+    let html = '<div class="phone-appbar">';
+    html += '<div class="phone-appbar-top"><span class="q-progress-text">Otázka '+(state.qIndex+1)+' / '+total+'</span>';
+    if(state.test.timeLimitMinutes>0) html += '<span class="timer-pill" id="timerPill">⏱ '+fmtSecs(state.timeLeft)+'</span>';
+    html += '</div>';
+    html += '<div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
+    html += '</div>';
+    html += '<div class="phone-body"><div class="qview" id="qview">';
+    html += '<div class="points-tag">'+(q.points||1)+' '+((q.points||1)===1?'bod':'body')+'</div>';
+    html += '<h2>'+escapeHtml(q.text)+'</h2>';
+    html += body;
+    html += '</div></div>';
+    html += '<div class="phone-footer">';
+    html += '<button class="btn btn-ghost" id="prevBtn" '+(state.qIndex===0?'disabled':'')+'>Zpět</button>';
+    html += '<button class="btn btn-primary" id="nextBtn">'+(state.qIndex===total-1? 'Odeslat test':'Další')+'</button>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderDone(){
+    const r = state.result;
+    if(!state.test.settings.showResultsAfter){
+      return '<div class="center-msg"><div class="emoji">🎉</div><h2>Test byl odeslán</h2><p>Děkujeme, '+escapeHtml(state.name.split(' ')[0]||'')+'! Výsledky uvidí tvůj učitel.</p></div>';
+    }
+    let html = '<div class="phone-body" style="padding:26px 20px;">';
+    html += '<div class="result-hero" style="--pct:'+r.percent+'">';
+    html += '<div class="result-score-ring"><div class="rs-inner"><div class="rs-pct">'+r.percent+'%</div><div class="rs-frac">'+r.score+' / '+r.maxScore+' b.</div></div></div>';
+    html += '<h2>'+(r.percent>=90?'Skvělá práce! 🌟':r.percent>=70?'Pěkně zvládnuto! 👍':r.percent>=50?'Dobrý pokus 🙂':'To příště bude lepší 💪')+'</h2>';
+    html += '</div>';
+    html += r.answers.map(function(a){
+      return '<div class="review-item"><div class="ri-head"><div class="ri-q">'+escapeHtml(a.text)+'</div><div class="ri-mark">'+(a.correct?'✅':'❌')+'</div></div>' +
+        '<div class="ri-line">Tvoje odpověď: <b>'+escapeHtml(a.givenText)+'</b></div>' +
+        (!a.correct? '<div class="ri-line">Správně: <b>'+escapeHtml(a.correctText)+'</b></div>' : '') +
+        '</div>';
+    }).join('');
+    html += '</div>';
+    return html;
+  }
+
+  function attachPhaseHandlers(){
+    if(state.phase==='landing'){
+      const n = qs('#inName'); if(n) n.addEventListener('input', function(e){ state.name=e.target.value; });
+      const c = qs('#inClass'); if(c) c.addEventListener('input', function(e){ state.className=e.target.value; });
+      const sb = qs('#startBtn');
+      if(sb) sb.addEventListener('click', function(){
+        if(state.test.settings.fullscreenRequired && document.documentElement.requestFullscreen){
+          document.documentElement.requestFullscreen().catch(function(){});
+        }
+        startTest();
+      });
+    }
+    if(state.phase==='taking'){
+      const q = state.order[state.qIndex];
+      qsa('[data-single]').forEach(function(b){ b.addEventListener('click', function(){
+        state.answers[q.id]=parseInt(b.dataset.single,10); render();
+      });});
+      qsa('[data-multi]').forEach(function(b){ b.addEventListener('click', function(){
+        const idx=parseInt(b.dataset.multi,10);
+        const arr=(state.answers[q.id]||[]).slice();
+        const pos=arr.indexOf(idx);
+        if(pos>=0) arr.splice(pos,1); else arr.push(idx);
+        state.answers[q.id]=arr; render();
+      });});
+      qsa('[data-tf]').forEach(function(b){ b.addEventListener('click', function(){
+        state.answers[q.id] = b.dataset.tf==='true'; render();
+      });});
+      const sa = qs('#shortAns'); if(sa) sa.addEventListener('input', function(e){ state.answers[q.id]=e.target.value; });
+      qsa('[data-move]').forEach(function(b){ b.addEventListener('click', function(){
+        const pos=parseInt(b.dataset.pos,10);
+        const dir=b.dataset.move;
+        const arr=(state.answers[q.id]||[]).slice();
+        const swapWith = dir==='up'? pos-1 : pos+1;
+        const tmp=arr[pos]; arr[pos]=arr[swapWith]; arr[swapWith]=tmp;
+        state.answers[q.id]=arr; render();
+      });});
+      const pb = qs('#prevBtn'); if(pb) pb.addEventListener('click', goPrev);
+      const nb = qs('#nextBtn'); if(nb) nb.addEventListener('click', goNext);
+    }
+  }
+}
+
+/* =========================================================================
+   MODAL (shared)
+   ========================================================================= */
+function showModal(html){
+  closeModal();
+  const ov = document.createElement('div');
+  ov.className='overlay';
+  ov.id='globalOverlay';
+  ov.innerHTML = '<div class="modal">'+html+'</div>';
+  ov.addEventListener('click', function(e){ if(e.target===ov) closeModal(); });
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(function(b){ b.addEventListener('click', closeModal); });
+}
+function closeModal(){
+  const ov = document.getElementById('globalOverlay');
+  if(ov) ov.remove();
+}
+
+/* =========================================================================
+   TEACHER APP
+   ========================================================================= */
+function runTeacherApp(){
+  const state = {
+    authed: sessionStorage.getItem('zk_teacher_authed')==='1',
+    passInput:'',
+    passError:false,
+    view:'dashboard', // dashboard | edit | results
+    tests:[],
+    testsLoaded:false,
+    search:'',
+    filter:'all', // all | live | paused
+    editingTest:null,
+    resultsForTest:null,
+    resultsList:[]
+  };
+
+  if(state.authed){ loadTests(); } else { renderGate(); }
+
+  function checkPassword(){
+    sha256Hex(state.passInput).then(function(hash){
+      if(hash===TEACHER_PASSWORD_HASH){
+        state.authed=true;
+        sessionStorage.setItem('zk_teacher_authed','1');
+        loadTests();
+      } else {
+        state.passError=true;
+        state.passInput='';
+        renderGate();
+        setTimeout(function(){ state.passError=false; },600);
+      }
+    });
+  }
+
+  function renderGate(){
+    let dots='';
+    for(let i=0;i<4;i++){
+      const filled = i < state.passInput.length;
+      dots += '<div class="dot '+(filled?'filled':'')+' '+(state.passError?'err':'')+'"></div>';
+    }
+    let keys='';
+    [1,2,3,4,5,6,7,8,9].forEach(function(n){ keys += '<button data-key="'+n+'">'+n+'</button>'; });
+    keys += '<button data-key="clear" style="font-size:13px;">Smazat</button>';
+    keys += '<button data-key="0">0</button>';
+    keys += '<button data-key="back">⌫</button>';
+
+    $app.innerHTML =
+      '<div class="gate-wrap"><div class="gate-card">' +
+      '<div class="brand-mark">🎓</div>' +
+      '<h1>Zkouškovna</h1>' +
+      '<p class="sub">Zadej heslo pro vstup do učitelské sekce</p>' +
+      '<div class="pass-dots">'+dots+'</div>' +
+      '<div class="keypad">'+keys+'</div>' +
+      '</div></div>';
+
+    qsa('[data-key]').forEach(function(b){
+      b.addEventListener('click', function(){
+        const k=b.dataset.key;
+        if(k==='clear'){ state.passInput=''; renderGate(); return; }
+        if(k==='back'){ state.passInput=state.passInput.slice(0,-1); renderGate(); return; }
+        if(state.passInput.length>=4) return;
+        state.passInput += k;
+        renderGate();
+        if(state.passInput.length===4) checkPassword();
+      });
+    });
+  }
+
+  function loadTests(){
+    db.collection('tests').orderBy('createdAt','desc').get().then(function(snap){
+      state.tests = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      state.testsLoaded=true;
+      state.view='dashboard';
+      renderTeacher();
+    }).catch(function(e){
+      console.error(e);
+      toast('Nepodařilo se načíst testy — zkontroluj Firebase konfiguraci','err');
+      state.tests=[];
+      state.testsLoaded=true;
+      state.view='dashboard';
+      renderTeacher();
+    });
+  }
+
+  function topbarHtml(){
+    return '<div class="topbar"><div class="brand"><div class="brand-mark">🎓</div>Zkouškovna</div>' +
+      '<div class="topbar-actions">' +
+      (state.view!=='dashboard'? '<button class="btn btn-ghost btn-sm" id="backToDash">← Zpět na testy</button>':'') +
+      '<button class="btn btn-ghost btn-sm" id="logoutBtn">Odhlásit</button>' +
+      '</div></div>';
+  }
+
+  function renderTeacher(){
+    let body='';
+    if(state.view==='dashboard') body = renderDashboard();
+    else if(state.view==='edit') body = renderEditor();
+    else if(state.view==='results') body = renderResultsView();
+
+    $app.innerHTML = '<div class="app-shell">'+topbarHtml()+'<div class="container">'+body+'</div></div>';
+
+    const lo = qs('#logoutBtn');
+    if(lo) lo.addEventListener('click', function(){
+      sessionStorage.removeItem('zk_teacher_authed');
+      state.authed=false; state.passInput='';
+      renderGate();
+    });
+    const back = qs('#backToDash');
+    if(back) back.addEventListener('click', function(){ state.view='dashboard'; loadTests(); });
+
+    attachTeacherHandlers();
+  }
+
+  // ----- DASHBOARD -----
+  function renderDashboard(){
+    let list = state.tests.filter(function(t){
+      if(state.filter==='live' && t.active===false) return false;
+      if(state.filter==='paused' && t.active!==false) return false;
+      if(state.search && t.title.toLowerCase().indexOf(state.search.toLowerCase())===-1) return false;
+      return true;
+    });
+
+    const cards = list.map(function(t){
+      const isActive = t.active!==false;
+      return '<div class="test-card">' +
+        '<div class="test-card-top"><h3>'+escapeHtml(t.title)+'</h3>' +
+        '<span class="badge '+(isActive?'badge-live':'badge-paused')+'">'+(isActive?'● Aktivní':'⏸ Pozastaven')+'</span></div>' +
+        '<div class="test-meta"><span>❓ '+t.questions.length+' otázek</span>' +
+        '<span>⏱ '+(t.timeLimitMinutes>0? t.timeLimitMinutes+' min' : 'bez limitu')+'</span></div>' +
+        '<div class="test-card-actions">' +
+        '<button class="btn btn-sm btn-ghost" data-edit="'+t.id+'">Upravit</button>' +
+        '<button class="btn btn-sm btn-ghost" data-results="'+t.id+'">Výsledky</button><button class="btn btn-sm btn-ghost" data-print="'+t.id+'">Tisk</button>' +
+        '<button class="btn btn-sm btn-ghost" data-link="'+t.id+'">Odkaz</button>' +
+        '<button class="btn btn-sm btn-ghost" data-toggle="'+t.id+'">'+(isActive?'Pozastavit':'Aktivovat')+'</button>' +
+        '<button class="btn btn-sm btn-ghost" data-dup="'+t.id+'">Duplikovat</button>' +
+        '<button class="btn btn-sm btn-danger" data-del="'+t.id+'">Smazat</button>' +
+        '</div></div>';
+    }).join('');
+
+    let html = '<div class="page-head"><div><h1>Moje testy</h1><div class="sub">'+state.tests.length+' celkem</div></div>' +
+      '<button class="btn btn-primary" id="newTestBtn">+ Nový test</button></div>';
+    html += '<div class="toolbar"><input class="input" id="searchInput" placeholder="Hledat test…" value="'+escapeHtml(state.search)+'">' +
+      '<div class="pill-select">' +
+      '<button data-filter="all" class="'+(state.filter==='all'?'active':'')+'">Vše</button>' +
+      '<button data-filter="live" class="'+(state.filter==='live'?'active':'')+'">Aktivní</button>' +
+      '<button data-filter="paused" class="'+(state.filter==='paused'?'active':'')+'">Pozastavené</button>' +
+      '</div></div>';
+
+    if(!state.testsLoaded){
+      html += '<div class="center-msg" style="height:200px;"><div class="spinner"></div></div>';
+    } else if(list.length){
+      html += '<div class="test-grid">'+cards+'</div>';
+    } else {
+      html += '<div class="empty-state"><div class="emoji">📋</div><h3>Zatím žádné testy</h3><p>Vytvoř svůj první test tlačítkem výše.</p></div>';
+    }
+    return html;
+  }
+
+  function testLink(id){
+    const url = new URL(location.href);
+    url.search = '?test='+id;
+    return url.toString();
+  }
+
+  function attachDashboardHandlers(){
+    const nb = qs('#newTestBtn');
+    if(nb) nb.addEventListener('click', function(){
+      state.editingTest = {
+        id:null, title:'', description:'', timeLimitMinutes:0,
+        settings: emptySettings(), questions:[], active:true
+      };
+      state.view='edit'; renderTeacher();
+    });
+    const si = qs('#searchInput');
+    if(si) si.addEventListener('input', function(e){ state.search=e.target.value; renderTeacher(); });
+    qsa('[data-filter]').forEach(function(b){ b.addEventListener('click', function(){ state.filter=b.dataset.filter; renderTeacher(); }); });
+
+    qsa('[data-edit]').forEach(function(b){ b.addEventListener('click', function(){
+      const t = state.tests.find(function(x){ return x.id===b.dataset.edit; });
+      state.editingTest = JSON.parse(JSON.stringify(t));
+      state.view='edit'; renderTeacher();
+    });});
+    qsa('[data-results]').forEach(function(b){ b.addEventListener('click', function(){ openResults(b.dataset.results); }); });
+    qsa('[data-print]').forEach(function(b){ b.addEventListener('click', function(){
+      const t = state.tests.find(function(x){ return x.id===b.dataset.print; });
+      printTest(t);
+    }); });
+    qsa('[data-link]').forEach(function(b){ b.addEventListener('click', function(){
+      const link = testLink(b.dataset.link);
+      showModal(
+        '<h2>Odkaz pro žáky</h2>' +
+        '<p style="color:var(--muted);font-size:13.5px;margin-bottom:12px;">Pošli tento odkaz žákům — otevře se rovnou konkrétní test, bez přístupu do učitelské sekce.</p>' +
+        '<div class="link-box"><input readonly value="'+escapeHtml(link)+'" id="linkField"></div>' +
+        '<div class="modal-actions"><button class="btn btn-ghost" data-close>Zavřít</button>' +
+        '<button class="btn btn-primary" id="copyLinkBtn">Kopírovat odkaz</button></div>'
+      );
+      const cb = qs('#copyLinkBtn');
+      cb.onclick=function(){
+        navigator.clipboard && navigator.clipboard.writeText(link).then(function(){ toast('Odkaz zkopírován','ok'); }).catch(function(){ toast('Nepodařilo se zkopírovat','err'); });
+      };
+    });});
+    qsa('[data-toggle]').forEach(function(b){ b.addEventListener('click', function(){
+      const t = state.tests.find(function(x){ return x.id===b.dataset.toggle; });
+      const newActive = t.active===false;
+      db.collection('tests').doc(t.id).update({active:newActive}).then(function(){
+        toast(newActive? 'Test aktivován':'Test pozastaven','ok');
+        loadTests();
+      });
+    });});
+    qsa('[data-dup]').forEach(function(b){ b.addEventListener('click', function(){
+      const t = state.tests.find(function(x){ return x.id===b.dataset.dup; });
+      const copy = JSON.parse(JSON.stringify(t));
+      delete copy.id;
+      copy.title = copy.title + ' (kopie)';
+      copy.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      db.collection('tests').add(copy).then(function(){
+        toast('Test zduplikován','ok');
+        loadTests();
+      });
+    });});
+    qsa('[data-del]').forEach(function(b){ b.addEventListener('click', function(){
+      const t = state.tests.find(function(x){ return x.id===b.dataset.del; });
+      showModal(
+        '<h2>Smazat test?</h2>' +
+        '<p style="color:var(--muted);font-size:14px;">Opravdu chceš smazat test „'+escapeHtml(t.title)+'“? Tato akce je nevratná a smaže i všechny výsledky žáků.</p>' +
+        '<div class="modal-actions"><button class="btn btn-ghost" data-close>Zrušit</button>' +
+        '<button class="btn btn-danger" id="confirmDel">Smazat natrvalo</button></div>'
+      );
+      const cd = qs('#confirmDel');
+      cd.onclick=function(){
+        closeModal();
+        db.collection('tests').doc(t.id).delete().then(function(){
+          toast('Test smazán','ok');
+          loadTests();
+        });
+      };
+    });});
+  }
+
+  // ----- PRINT TEST -----
+  function printTest(t){
+    if(!t || !t.questions || !t.questions.length){ toast('Test nemá žádné otázky','err'); return; }
+    const sheet = document.createElement('div');
+    sheet.id='printTestSheet';
+    let html='<h1>'+escapeHtml(t.title)+'</h1>';
+    html+='<div class="print-header"><div class="print-field"><b>Jméno žáka:</b> </div><div class="print-field"><b>Datum:</b> </div></div>';
+    t.questions.forEach(function(q,i){
+      html+='<div class="print-q"><div class="print-q-title">'+(i+1)+'. '+escapeHtml(q.text)+'</div>';
+      if(q.type==='single'||q.type==='multi'){
+        q.options.forEach(function(opt,oi){
+          html+='<div class="print-opt">☐ '+escapeHtml(opt)+'</div>';
+        });
+      } else if(q.type==='truefalse'){
+        html+='<div class="print-opt">☐ Ano &nbsp;&nbsp;&nbsp; ☐ Ne</div>';
+      } else if(q.type==='short'){
+        html+='<div class="print-line"></div><div class="print-line"></div>';
+      } else if(q.type==='ordering'){
+        q.items.forEach(function(){ html+='<div class="print-opt">____ &nbsp; ______________________________</div>'; });
+      }
+      html+='</div>';
+    });
+    sheet.innerHTML=html;
+    document.body.appendChild(sheet);
+    window.print();
+    setTimeout(function(){ sheet.remove(); },500);
+  }
+
+  // ----- EDITOR -----
+  function renderEditor(){
+    const t = state.editingTest;
+    const qCards = t.questions.map(function(q,i){ return renderQuestionCard(q,i); }).join('');
+    let html = '<div class="page-head"><div><h1>'+(t.id? 'Upravit test':'Nový test')+'</h1><div class="sub">Vyplň informace a přidej otázky</div></div>' +
+      '<div style="display:flex;gap:10px;"><button class="btn btn-ghost" id="cancelEditBtn">Zrušit</button>' +
+      '<button class="btn btn-primary" id="saveTestBtn">Uložit test</button></div></div>';
+
+    html += '<div class="card" style="margin-bottom:20px;">' +
+      '<div class="field"><label>Název testu</label><input class="input" id="fTitle" value="'+escapeHtml(t.title)+'" placeholder="např. Vyjmenovaná slova po B"></div>' +
+      '<div class="field"><label>Popis (nepovinné)</label><textarea class="input" id="fDesc" placeholder="Krátký popis pro žáky…">'+escapeHtml(t.description||'')+'</textarea></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
+      '<div class="field"><label>Časový limit (minuty, 0 = bez limitu)</label><input class="input" type="number" min="0" id="fTime" value="'+(t.timeLimitMinutes||0)+'"></div>' +
+      '</div>' +
+      '<div class="checkbox-row"><input type="checkbox" id="fShuffleQ" '+(t.settings.shuffleQuestions?'checked':'')+'><label for="fShuffleQ">Náhodné pořadí otázek pro každého žáka</label></div>' +
+      '<div class="checkbox-row"><input type="checkbox" id="fShuffleA" '+(t.settings.shuffleAnswers?'checked':'')+'><label for="fShuffleA">Náhodné pořadí odpovědí</label></div>' +
+      '<div class="checkbox-row"><input type="checkbox" id="fShowRes" '+(t.settings.showResultsAfter?'checked':'')+'><label for="fShowRes">Zobrazit žákům výsledek ihned po odevzdání</label></div>' +
+      '<div class="checkbox-row"><input type="checkbox" id="fRetake" '+(t.settings.allowRetake?'checked':'')+'><label for="fRetake">Povolit opakované vyplnění</label></div>' +
+      '<div class="checkbox-row"><input type="checkbox" id="fClass" '+(t.settings.requireClass?'checked':'')+'><label for="fClass">Vyžadovat vyplnění třídy</label></div>' +
+      '<div class="checkbox-row"><input type="checkbox" id="fFullscreen" '+(t.settings.fullscreenRequired?'checked':'')+'><label for="fFullscreen">Vyžadovat režim celé obrazovky</label></div>' +
+      '</div>';
+
+    html += '<h3 style="margin-bottom:12px;">Otázky ('+t.questions.length+')</h3>';
+    html += '<div id="questionList">'+qCards+'</div>';
+
+    let addMenu='';
+    Object.keys(QUESTION_TYPES).forEach(function(type){
+      const def = QUESTION_TYPES[type];
+      addMenu += '<button data-addq="'+type+'"><span class="ic">'+def.icon+'</span>'+def.label+'</button>';
+    });
+    html += '<div class="card" style="border-style:dashed;"><p style="font-weight:600;font-size:14px;margin-bottom:4px;">Přidat otázku</p><div class="add-q-menu">'+addMenu+'</div></div>';
+
+    return html;
+  }
+
+  function renderQuestionCard(q, i){
+    const def = QUESTION_TYPES[q.type];
+    let body='';
+    if(q.type==='single' || q.type==='multi'){
+      body = q.options.map(function(opt,oi){
+        const isCorrect = q.type==='single'? q.correctIndex===oi : q.correctIndexes.indexOf(oi)>=0;
+        return '<div class="opt-row">' +
+          '<button class="opt-correct-toggle '+(isCorrect?'correct':'')+'" data-optcorrect="'+i+':'+oi+'">✓</button>' +
+          '<input class="input" data-optval="'+i+':'+oi+'" value="'+escapeHtml(opt)+'" placeholder="Možnost '+(oi+1)+'">' +
+          '<button class="btn btn-icon btn-sm" data-optdel="'+i+':'+oi+'" '+(q.options.length<=2?'disabled':'')+'>✕</button>' +
+          '</div>';
+      }).join('') + '<button class="btn btn-sm btn-ghost" data-optadd="'+i+'">+ Přidat možnost</button>';
+    } else if(q.type==='truefalse'){
+      body = '<div class="tf-row">' +
+        '<button class="choice-btn '+(q.correct?'selected':'')+'" data-tfset="'+i+':true" style="flex:1;"><span class="letter">✓</span>Ano</button>' +
+        '<button class="choice-btn '+(!q.correct?'selected':'')+'" data-tfset="'+i+':false" style="flex:1;"><span class="letter">✕</span>Ne</button>' +
+        '</div>';
+    } else if(q.type==='short'){
+      const chips = q.acceptedAnswers.map(function(a,ai){
+        return '<span class="chip">'+escapeHtml(a)+'<button data-ansdel="'+i+':'+ai+'">✕</button></span>';
+      }).join('');
+      body = '<p class="hint" style="margin-bottom:6px;">Uveď jednu nebo více uznávaných odpovědí (velikost písmen se ignoruje).</p>' +
+        '<div class="short-ans-chip-row" id="chips-'+i+'">'+chips+'</div>' +
+        '<div class="opt-row" style="margin-top:8px;"><input class="input" id="newAns-'+i+'" placeholder="Přidat uznávanou odpověď a stisknout Enter"></div>';
+    } else if(q.type==='ordering'){
+      const items = q.items.map(function(it,oi){
+        return '<div class="order-item-edit"><span class="q-num" style="width:22px;height:22px;font-size:11px;">'+(oi+1)+'</span>' +
+          '<input class="input" data-orderval="'+i+':'+oi+'" value="'+escapeHtml(it)+'" placeholder="Položka '+(oi+1)+'">' +
+          '<button class="btn btn-icon btn-sm" data-orderdel="'+i+':'+oi+'" '+(q.items.length<=2?'disabled':'')+'>✕</button></div>';
+      }).join('');
+      body = '<p class="hint" style="margin-bottom:6px;">Zadej položky ve správném pořadí — žákům se zobrazí zamíchané.</p>' +
+        '<div class="order-items">'+items+'</div>' +
+        '<button class="btn btn-sm btn-ghost" style="margin-top:8px;" data-orderadd="'+i+'">+ Přidat položku</button>';
+    }
+
+    return '<div class="q-card"><div class="q-card-head">' +
+      '<div class="q-head-left"><div class="q-num">'+(i+1)+'</div><span class="q-type-badge">'+def.icon+' '+def.label+'</span></div>' +
+      '<div class="q-actions">' +
+      '<input class="input" type="number" min="1" style="width:70px;" data-points="'+i+'" value="'+(q.points||1)+'" title="Počet bodů">' +
+      '<button class="btn btn-icon btn-sm" data-qup="'+i+'" '+(i===0?'disabled':'')+'>↑</button>' +
+      '<button class="btn btn-icon btn-sm" data-qdown="'+i+'" '+(i===state.editingTest.questions.length-1?'disabled':'')+'>↓</button>' +
+      '<button class="btn btn-icon btn-sm" data-qdel="'+i+'">🗑</button>' +
+      '</div></div>' +
+      '<div class="field" style="margin-bottom:10px;"><input class="input" data-qtext="'+i+'" value="'+escapeHtml(q.text)+'" placeholder="Znění otázky…"></div>' +
+      body + '</div>';
+  }
+
+  function rerenderQuestionList(){
+    qs('#questionList').innerHTML = state.editingTest.questions.map(function(q,i){ return renderQuestionCard(q,i); }).join('');
+    attachQuestionHandlers();
+  }
+
+  function attachEditorHandlers(){
+    const t = state.editingTest;
+    const cancel = qs('#cancelEditBtn'); if(cancel) cancel.addEventListener('click', function(){ state.view='dashboard'; renderTeacher(); });
+    const fT = qs('#fTitle'); if(fT) fT.addEventListener('input', function(e){ t.title=e.target.value; });
+    const fD = qs('#fDesc'); if(fD) fD.addEventListener('input', function(e){ t.description=e.target.value; });
+    const fTime = qs('#fTime'); if(fTime) fTime.addEventListener('input', function(e){ t.timeLimitMinutes=parseInt(e.target.value||'0',10); });
+    const fSQ = qs('#fShuffleQ'); if(fSQ) fSQ.addEventListener('change', function(e){ t.settings.shuffleQuestions=e.target.checked; });
+    const fSA = qs('#fShuffleA'); if(fSA) fSA.addEventListener('change', function(e){ t.settings.shuffleAnswers=e.target.checked; });
+    const fSR = qs('#fShowRes'); if(fSR) fSR.addEventListener('change', function(e){ t.settings.showResultsAfter=e.target.checked; });
+    const fRT = qs('#fRetake'); if(fRT) fRT.addEventListener('change', function(e){ t.settings.allowRetake=e.target.checked; });
+    const fCl = qs('#fClass'); if(fCl) fCl.addEventListener('change', function(e){ t.settings.requireClass=e.target.checked; });
+    const fFs = qs('#fFullscreen'); if(fFs) fFs.addEventListener('change', function(e){ t.settings.fullscreenRequired=e.target.checked; });
+
+    qsa('[data-addq]').forEach(function(b){ b.addEventListener('click', function(){
+      t.questions.push(newQuestion(b.dataset.addq));
+      rerenderQuestionList();
+      renderEditorHead();
+    });});
+
+    const saveBtn = qs('#saveTestBtn'); if(saveBtn) saveBtn.addEventListener('click', saveTest);
+
+    attachQuestionHandlers();
+  }
+
+  function renderEditorHead(){
+    const h3 = qs('h3');
+    if(h3) h3.textContent = 'Otázky ('+state.editingTest.questions.length+')';
+  }
+
+  function attachQuestionHandlers(){
+    const t = state.editingTest;
+    qsa('[data-qtext]').forEach(function(el){ el.addEventListener('input', function(e){
+      t.questions[+e.target.dataset.qtext].text = e.target.value;
+    });});
+    qsa('[data-points]').forEach(function(el){ el.addEventListener('input', function(e){
+      t.questions[+e.target.dataset.points].points = Math.max(1, parseInt(e.target.value||'1',10));
+    });});
+    qsa('[data-qup]').forEach(function(b){ b.addEventListener('click', function(){
+      const i=+b.dataset.qup;
+      if(i>0){ const tmp=t.questions[i-1]; t.questions[i-1]=t.questions[i]; t.questions[i]=tmp; rerenderQuestionList(); }
+    });});
+    qsa('[data-qdown]').forEach(function(b){ b.addEventListener('click', function(){
+      const i=+b.dataset.qdown;
+      if(i<t.questions.length-1){ const tmp=t.questions[i+1]; t.questions[i+1]=t.questions[i]; t.questions[i]=tmp; rerenderQuestionList(); }
+    });});
+    qsa('[data-qdel]').forEach(function(b){ b.addEventListener('click', function(){
+      t.questions.splice(+b.dataset.qdel,1); rerenderQuestionList(); renderEditorHead();
+    });});
+
+    qsa('[data-optval]').forEach(function(el){ el.addEventListener('input', function(e){
+      const parts=e.target.dataset.optval.split(':').map(Number);
+      t.questions[parts[0]].options[parts[1]]=e.target.value;
+    });});
+    qsa('[data-optcorrect]').forEach(function(b){ b.addEventListener('click', function(){
+      const parts=b.dataset.optcorrect.split(':').map(Number);
+      const q=t.questions[parts[0]], oi=parts[1];
+      if(q.type==='single'){ q.correctIndex=oi; }
+      else {
+        const pos=q.correctIndexes.indexOf(oi);
+        if(pos>=0) q.correctIndexes.splice(pos,1); else q.correctIndexes.push(oi);
+      }
+      rerenderQuestionList();
+    });});
+    qsa('[data-optadd]').forEach(function(b){ b.addEventListener('click', function(){
+      t.questions[+b.dataset.optadd].options.push('');
+      rerenderQuestionList();
+    });});
+    qsa('[data-optdel]').forEach(function(b){ b.addEventListener('click', function(){
+      const parts=b.dataset.optdel.split(':').map(Number);
+      const qi=parts[0], oi=parts[1];
+      const q=t.questions[qi];
+      q.options.splice(oi,1);
+      if(q.type==='single' && q.correctIndex>=q.options.length) q.correctIndex=0;
+      if(q.type==='multi') q.correctIndexes=q.correctIndexes.filter(function(x){return x!==oi;}).map(function(x){return x>oi?x-1:x;});
+      rerenderQuestionList();
+    });});
+
+    qsa('[data-tfset]').forEach(function(b){ b.addEventListener('click', function(){
+      const parts=b.dataset.tfset.split(':');
+      t.questions[+parts[0]].correct = parts[1]==='true';
+      rerenderQuestionList();
+    });});
+
+    qsa('[data-ansdel]').forEach(function(b){ b.addEventListener('click', function(){
+      const parts=b.dataset.ansdel.split(':').map(Number);
+      t.questions[parts[0]].acceptedAnswers.splice(parts[1],1);
+      rerenderQuestionList();
+    });});
+    t.questions.forEach(function(q,i){
+      if(q.type==='short'){
+        const inp = qs('#newAns-'+i);
+        if(inp) inp.addEventListener('keydown', function(e){
+          if(e.key==='Enter' && e.target.value.trim()){
+            q.acceptedAnswers.push(e.target.value.trim());
+            rerenderQuestionList();
+          }
+        });
+      }
+    });
+
+    qsa('[data-orderval]').forEach(function(el){ el.addEventListener('input', function(e){
+      const parts=e.target.dataset.orderval.split(':').map(Number);
+      t.questions[parts[0]].items[parts[1]]=e.target.value;
+    });});
+    qsa('[data-orderadd]').forEach(function(b){ b.addEventListener('click', function(){
+      t.questions[+b.dataset.orderadd].items.push('');
+      rerenderQuestionList();
+    });});
+    qsa('[data-orderdel]').forEach(function(b){ b.addEventListener('click', function(){
+      const parts=b.dataset.orderdel.split(':').map(Number);
+      t.questions[parts[0]].items.splice(parts[1],1);
+      rerenderQuestionList();
+    });});
+  }
+
+  function saveTest(){
+    const t = state.editingTest;
+    if(!t.title.trim()){ toast('Zadej název testu','err'); return; }
+    if(t.questions.length===0){ toast('Přidej alespoň jednu otázku','err'); return; }
+    for(let idx=0; idx<t.questions.length; idx++){
+      const q = t.questions[idx];
+      if(!q.text.trim()){ toast('Každá otázka musí mít znění','err'); return; }
+      if((q.type==='single'||q.type==='multi') && q.options.some(function(o){return !o.trim();})){ toast('Vyplň všechny možnosti odpovědí','err'); return; }
+      if(q.type==='short' && q.acceptedAnswers.filter(function(a){return a.trim();}).length===0){ toast('Zadej alespoň jednu uznávanou odpověď','err'); return; }
+      if(q.type==='ordering' && q.items.some(function(it){return !it.trim();})){ toast('Vyplň všechny položky řazení','err'); return; }
+    }
+    const payload = {
+      title:t.title.trim(), description:(t.description||'').trim(),
+      timeLimitMinutes:t.timeLimitMinutes||0, settings:t.settings,
+      questions:t.questions, active: t.active!==false
+    };
+    let p;
+    if(t.id){
+      p = db.collection('tests').doc(t.id).update(payload);
+    } else {
+      payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      p = db.collection('tests').add(payload);
+    }
+    p.then(function(){
+      toast('Test uložen','ok');
+      state.view='dashboard';
+      loadTests();
+    }).catch(function(e){
+      console.error(e);
+      toast('Uložení se nezdařilo','err');
+    });
+  }
+
+  // ----- RESULTS -----
+  function openResults(testId){
+    const t = state.tests.find(function(x){ return x.id===testId; });
+    state.resultsForTest = t;
+    state.view='results';
+    state.resultsList=[];
+    renderTeacher();
+    db.collection('tests').doc(testId).collection('results').orderBy('createdAt','desc').get().then(function(snap){
+      state.resultsList = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      renderResultsBody();
+    }).catch(function(e){ console.error(e); renderResultsBody(); });
+  }
+
+  function renderResultsView(){
+    return '<div id="resultsRoot"><div class="center-msg" style="height:200px;"><div class="spinner"></div></div></div>';
+  }
+
+  function renderResultsBody(){
+    const root = qs('#resultsRoot');
+    if(!root) return;
+    const t = state.resultsForTest;
+    const results = state.resultsList;
+    const n = results.length;
+    const avgPct = n? Math.round(results.reduce(function(s,r){return s+r.percent;},0)/n) : 0;
+    const avgTime = n? Math.round(results.reduce(function(s,r){return s+(r.durationSec||0);},0)/n) : 0;
+    const flagged = results.filter(function(r){return r.tabSwitches>0;}).length;
+
+    let html = '<div class="page-head"><div><h1>'+escapeHtml(t.title)+'</h1><div class="sub">Výsledky žáků</div></div>' +
+      '<div style="display:flex;gap:10px;"><button class="btn btn-ghost" id="exportCsvBtn">Export CSV</button>' +
+      '<button class="btn btn-primary" id="showLinkBtn2">Odkaz pro žáky</button></div></div>';
+
+    html += '<div class="stat-row">' +
+      '<div class="stat-box"><div class="stat-label">Počet pokusů</div><div class="stat-val">'+n+'</div></div>' +
+      '<div class="stat-box"><div class="stat-label">Průměrné skóre</div><div class="stat-val">'+avgPct+'%</div></div>' +
+      '<div class="stat-box"><div class="stat-label">Průměrný čas</div><div class="stat-val">'+fmtSecs(avgTime)+'</div></div>' +
+      '<div class="stat-box"><div class="stat-label">S podezřelou aktivitou</div><div class="stat-val" style="'+(flagged>0?'color:var(--coral)':'')+'">'+flagged+'</div></div>' +
+      '</div>';
+
+    if(n>0){
+      html += '<div class="chart-row">' +
+        '<div class="chart-box"><h3>Rozložení skóre</h3><canvas id="chartDist" height="180"></canvas></div>' +
+        '<div class="chart-box"><h3>Úspěšnost po otázkách</h3><canvas id="chartQ" height="180"></canvas></div>' +
+        '</div>';
+      html += '<table class="results-table"><thead><tr><th>Jméno</th><th>Třída</th><th>Skóre</th><th>Čas</th><th>Datum</th><th></th><th></th></tr></thead><tbody>';
+      html += results.map(function(r){
+        return '<tr><td>'+escapeHtml(r.studentName)+' '+(r.tabSwitches>0? '<span class="flag" title="Přepnutí okna: '+r.tabSwitches+'">⚠</span>':'')+'</td>' +
+          '<td>'+escapeHtml(r.className||'—')+'</td>' +
+          '<td>'+r.score+'/'+r.maxScore+' ('+r.percent+'%)</td>' +
+          '<td>'+fmtSecs(r.durationSec||0)+'</td>' +
+          '<td>'+fmtDate(r.createdAt||r.finishedAt)+'</td>' +
+          '<td><button class="btn btn-sm btn-ghost" data-detail="'+r.id+'">Detail</button></td>' +
+          '<td><button class="btn btn-sm btn-danger" data-delres="'+r.id+'">Smazat</button></td></tr>';
+      }).join('');
+      html += '</tbody></table>';
+    } else {
+      html += '<div class="empty-state"><div class="emoji">📭</div><h3>Zatím žádné výsledky</h3><p>Jakmile žáci vyplní test, výsledky se zde zobrazí.</p></div>';
+    }
+
+    root.innerHTML = html;
+
+    if(n>0){
+      const buckets=[0,0,0,0,0];
+      results.forEach(function(r){ const idx=Math.min(4,Math.floor(r.percent/21)); buckets[idx]++; });
+      new Chart(qs('#chartDist'), {
+        type:'bar',
+        data:{labels:['0–20%','21–40%','41–60%','61–80%','81–100%'], datasets:[{label:'Počet žáků', data:buckets, backgroundColor:'#1F9D74', borderRadius:6}]},
+        options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
+      });
+
+      const qStats = t.questions.map(function(q){
+        let correct=0;
+        results.forEach(function(r){
+          const a = r.answers.find(function(x){return x.questionId===q.id;});
+          if(a && a.correct) correct++;
+        });
+        return n? Math.round((correct/n)*100) : 0;
+      });
+      new Chart(qs('#chartQ'), {
+        type:'bar',
+        data:{labels:t.questions.map(function(q,i){return 'Q'+(i+1);}), datasets:[{label:'% úspěšnost', data:qStats, backgroundColor:'#F2A93C', borderRadius:6}]},
+        options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,max:100}}}
+      });
+    }
+
+    const exportBtn = qs('#exportCsvBtn');
+    if(exportBtn) exportBtn.addEventListener('click', function(){
+      const rows = [['Jméno','Třída','Skóre','Max','Procenta','Čas (s)','Datum','Přepnutí okna']];
+      results.forEach(function(r){ rows.push([r.studentName, r.className||'', r.score, r.maxScore, r.percent, r.durationSec||0, fmtDate(r.createdAt||r.finishedAt), r.tabSwitches||0]); });
+      downloadCSV('vysledky_'+t.title.replace(/[^a-z0-9]+/gi,'_')+'.csv', rows);
+    });
+    const showLinkBtn2 = qs('#showLinkBtn2');
+    if(showLinkBtn2) showLinkBtn2.addEventListener('click', function(){
+      const link = testLink(t.id);
+      showModal('<h2>Odkaz pro žáky</h2><div class="link-box"><input readonly value="'+escapeHtml(link)+'"></div>' +
+        '<div class="modal-actions"><button class="btn btn-primary" data-close>Zavřít</button></div>');
+    });
+    qsa('[data-detail]').forEach(function(b){ b.addEventListener('click', function(){
+      const r = results.find(function(x){return x.id===b.dataset.detail;});
+      const answersHtml = r.answers.map(function(a){
+        return '<div class="review-item"><div class="ri-head"><div class="ri-q">'+escapeHtml(a.text)+'</div><div class="ri-mark">'+(a.correct?'✅':'❌')+'</div></div>' +
+          '<div class="ri-line">Odpověď: <b>'+escapeHtml(a.givenText)+'</b></div>' +
+          (!a.correct? '<div class="ri-line">Správně: <b>'+escapeHtml(a.correctText)+'</b></div>':'') +
+          '</div>';
+      }).join('');
+      showModal(
+        '<h2>'+escapeHtml(r.studentName)+' '+(r.className? '· '+escapeHtml(r.className):'')+'</h2>' +
+        '<p style="color:var(--muted);font-size:13px;margin-bottom:14px;">Skóre '+r.score+'/'+r.maxScore+' ('+r.percent+'%) · '+fmtSecs(r.durationSec||0)+' '+(r.tabSwitches>0? '· ⚠ '+r.tabSwitches+'× opuštění okna':'')+'</p>' +
+        answersHtml +
+        '<div class="modal-actions"><button class="btn btn-primary" data-close>Zavřít</button></div>'
+      );
+    });});
+    qsa('[data-delres]').forEach(function(b){ b.addEventListener('click', function(){
+      showModal(
+        '<h2>Smazat výsledek?</h2><p style="color:var(--muted);font-size:14px;">Tato akce je nevratná.</p>' +
+        '<div class="modal-actions"><button class="btn btn-ghost" data-close>Zrušit</button>' +
+        '<button class="btn btn-danger" id="confirmDelRes">Smazat</button></div>'
+      );
+      const cdr = qs('#confirmDelRes');
+      cdr.onclick=function(){
+        closeModal();
+        db.collection('tests').doc(t.id).collection('results').doc(b.dataset.delres).delete().then(function(){
+          state.resultsList = state.resultsList.filter(function(x){return x.id!==b.dataset.delres;});
+          renderResultsBody();
+        });
+      };
+    });});
+  }
+
+  function attachTeacherHandlers(){
+    if(state.view==='dashboard') attachDashboardHandlers();
+    else if(state.view==='edit') attachEditorHandlers();
+  }
+}
+</script>
+</body>
+</html>
